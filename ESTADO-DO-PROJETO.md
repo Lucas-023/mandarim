@@ -54,6 +54,12 @@ testes, monta `publicar/` e publica a cada push em `main`. Público expõe o **c
 (ficam no aparelho; `data/` está no `.gitignore` e há teste que falha se vazar para a publicação;
 conferido no ar: `data/state.json` dá 404).
 
+**Caixa postal instalada neste PC (2026-10-14):** repositório privado
+`git@github.com:Lucas-023/mandarim-dados.git` clonado em `data/caixa/`; timer de usuário
+`mandarin-quest-caixa.timer` (a cada 30 min) ativo; `loginctl enable-linger` ligado, então roda sem
+login. Conferido: o serviço roda pelo systemd, puxa por SSH e acha o `claude` no PATH da unidade.
+Log: `journalctl --user -u mandarin-quest-caixa.service -n 50`.
+
 ### Três modos de armazenamento (decididos em tempo de execução)
 
 | Modo | Quando | Onde ficam os dados | Geração do pacote |
