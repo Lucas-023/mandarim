@@ -13,6 +13,8 @@
  *    avançado (exportado > aprovado > pendente > rejeitado).
  *  - Conquistas: fica a data mais antiga (foi quando você realmente conseguiu).
  *  - Agendamento: por item, fica o registro revisado mais recentemente.
+ *  - Baralho: respostas por união; cada cartão fica com a versão respondida
+ *    por último; cartões de rascunho duplicado passam para o que ficou.
  *  - Campos que não são lista (perfil, configurações, plano): fica o do estado
  *    alterado por último, pelo `updatedAt`.
  *  - Sessão em andamento: fica a mais recente.
@@ -86,6 +88,12 @@ export function mergeStates(aBruto, bBruto) {
     if (!atual || (PESO_STATUS[d.status] || 0) > (PESO_STATUS[atual.status] || 0)) porFrente.set(k, d);
   }
   const antesCartoes = resultado.cardDrafts.length;
+  // Rascunho descartado como duplicata: seus cartões do baralho passam para o que ficou.
+  const remapear = new Map();
+  for (const d of resultado.cardDrafts) {
+    const ficou = porFrente.get(normalizeFront(d.front));
+    if (ficou && ficou.id !== d.id) remapear.set(d.id, ficou.id);
+  }
   resultado.cardDrafts = [...porFrente.values()];
   relatorio.cartoesDuplicadosRemovidos = antesCartoes - resultado.cardDrafts.length;
 
@@ -119,6 +127,32 @@ export function mergeStates(aBruto, bBruto) {
   }
   resultado.schedule = { items: itens };
   relatorio.adicionados.schedule = itensNovos;
+
+  // Baralho: registro de respostas por união; cada cartão fica com a versão
+  // respondida por último (é ela que carrega o agendamento certo).
+  const cartoes = new Map();
+  let cartoesNovos = 0;
+  for (const estado of [a, b]) {
+    for (const bruto of estado.deck?.cartoes || []) {
+      const draftId = remapear.get(bruto.draftId) || bruto.draftId;
+      const c = { ...bruto, draftId, id: `${draftId}:${bruto.modelo}` };
+      const atual = cartoes.get(c.id);
+      if (!atual) {
+        cartoes.set(c.id, c);
+        if (estado === b) cartoesNovos += 1;
+      } else if (String(c.ultimaRevisao || '') > String(atual.ultimaRevisao || '')) {
+        cartoes.set(c.id, c);
+      }
+    }
+  }
+  const registro = unirPor(a.deck?.registro, b.deck?.registro, (x) => x.id);
+  resultado.deck = {
+    cartoes: [...cartoes.values()],
+    // O retrato para desfazer só vale no aparelho onde a resposta foi dada.
+    registro: ordenarPorData(registro.lista).map(({ anterior, agendaAnterior, ...r }) => r),
+    config: recente.deck?.config || antigo.deck?.config || {},
+  };
+  relatorio.adicionados.baralho = cartoesNovos + registro.novos;
 
   // Sessão em andamento: a mais recente das duas (ou a que existir).
   const sessaoA = a.activeSession;

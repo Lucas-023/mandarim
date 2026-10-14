@@ -22,11 +22,14 @@ import { renderActivities } from './ui/activities.js';
 import { renderHistory } from './ui/history.js';
 import { renderSettings } from './ui/settings.js';
 import { renderPack } from './ui/pack.js';
+import { renderBaralho } from './ui/baralho.js';
+import { sincronizarCartoes, precisaSincronizar } from './core/baralho.js';
 import { sincronizarCaixa, agendarEnvio, descarregarEnvio } from './ui/caixa.js';
 
 const VIEWS = {
   dashboard: { label: 'Painel', render: renderDashboard },
   study: { label: 'Estudar', render: renderStudy },
+  deck: { label: 'Baralho', render: renderBaralho },
   cards: { label: 'Criar cartões', render: renderCards },
   activities: { label: 'Registrar', render: renderActivities },
   history: { label: 'Histórico', render: renderHistory },
@@ -364,6 +367,8 @@ async function registrarServiceWorker() {
 (async () => {
   store = await createStore();
   restoreLexicon(store.state);
+  // Cartões aprovados antes de o baralho existir entram nele já na abertura.
+  if (precisaSincronizar(store.state)) commit((s) => sincronizarCartoes(s), { silent: true });
   current = parseHash();
   render();
   syncTodayPack();

@@ -72,6 +72,8 @@ export function emptyState(now = new Date().toISOString()) {
     conversations: [],
     cardDrafts: [],
     cardExports: [],
+    /** Baralho interno (ver baralho.js): agendamento FSRS por cartão e registro de respostas. */
+    deck: { cartoes: [], registro: [], config: {} },
     achievements: [],
     dismissedRecommendations: [],
   };

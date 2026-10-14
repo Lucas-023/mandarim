@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-10-14. Testes: **245 passando** (`npm test`).
+> Última atualização: 2026-10-14. Testes: **272 passando** (`npm test`).
 
 ---
 
@@ -20,7 +20,7 @@ local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm in
 para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
-Tamanho atual:  núcleo 5.602 linhas · interface 3.433 · servidor/scripts 1.318 · testes 3.506
+Tamanho atual:  núcleo 6.202 linhas · interface 3.923 · servidor/scripts 1.318 · testes 4.002
 Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -29,7 +29,7 @@ Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 245 testes, ~4s, sem rede
+npm test                       # 272 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -90,6 +90,8 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   serverStore.js        persistência via /api, detecção de dados órfãos
   mediaStore.js         áudios: arquivo no servidor OU IndexedDB
   merge.js              mesclagem de dois aparelhos sem perder histórico
+  fsrs.js               FSRS-4.5: estabilidade, dificuldade, retenção (o algoritmo do Anki)
+  baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer
   caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
   xp.js                 XP idempotente, meta diária, sequência, marcos
@@ -118,13 +120,13 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/grammar.js    50 estruturas em ordem de progressão
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao, caixa)
+                        activities, history, settings, audio, recorder, geracao, caixa, baralho)
 tools/generate.js       gerador por linha de comando
 tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  18 arquivos, 245 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  19 arquivos, 272 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -278,6 +280,26 @@ HTTPS com CORS, funciona fora de casa e o PC já tem SSH configurado.
 **Se mudar:** trocar o briefing pelo estado inteiro vaza dados privados para o GitHub; usar o fuso
 do PC gera o pacote no dia errado.
 
+### 3.20 Baralho próprio (FSRS) em vez de depender do Anki no iPhone
+
+O usuário usa iPhone, onde o Anki é pago (AnkiMobile) e não aceita AnkiConnect, e pediu "um pequeno
+Anki dentro do app". Decisões:
+- **FSRS-4.5 com os pesos padrão**, implementado das fórmulas publicadas (não é código do Anki).
+  Otimizar os pesos exige centenas de revisões que ainda não existem.
+- **Conteúdo = rascunho aprovado** (`cardDrafts` approved/exported); o cartão guarda só o
+  agendamento (`state.deck.cartoes`, id `rascunho:modelo`). Editar o rascunho muda o cartão sem cópia.
+  Rejeitar apaga os cartões; desligar um tipo de cartão só esconde (o histórico volta).
+- **Memória muda só na 1ª resposta do dia** (regra do FSRS-4.5); passos em minutos como no Anki;
+  irmãos (reconhecer/produzir da mesma palavra) nunca no mesmo dia.
+- **Autoavaliação não é proficiência:** responder dá XP (`review_session`, uma vez por dia, a partir
+  de 10 respostas) e nunca cria `skillEvidence`. Teste cobre.
+- **Ponte com o pacote diário:** se a palavra já está em `schedule.js`, a resposta conta lá, uma vez
+  por dia (os dois irmãos não aceleram o item duas vezes). Palavra que o pacote nunca viu não é criada.
+- **Desfazer** guarda o retrato anterior nas últimas 50 respostas; a mesclagem descarta esses retratos.
+- Sem *fuzz* nos intervalos (o Anki espalha ±alguns dias): mantém o comportamento previsível e testável.
+**Se mudar:** dar evidência de habilidade por revisão viola §3.2; copiar o conteúdo para o cartão
+cria duas fontes que divergem ao editar.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -295,6 +317,7 @@ do PC gera o pacote no dia errado.
 | 9 | Push para `github.com/Lucas-023/mandarim` (remote `origin`, SSH) | pedido: ter o repositório chamado `mandarim` |
 | 10 | Repositório público + Pages via Actions; app no ar em `lucas-023.github.io/mandarim` | pedido: usar no celular |
 | 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 245) | pedido: não pagar API, iPhone |
+| 12 | Baralho interno com FSRS ("um pequeno Anki"): estudo com 4 notas, navegador, adicionar, estatísticas, mesclagem (245 → 272) | pedido: Anki no iPhone sem pagar AnkiMobile |
 
 ---
 
@@ -302,12 +325,18 @@ do PC gera o pacote no dia errado.
 
 Em ordem de valor para um intensivo. Cada item tem contexto suficiente para começar sem reler nada.
 
-### 5.1 O agendador ignora o que você revisa dentro do Anki
+### 5.1 O agendador ignora o que você revisa dentro do Anki (o de verdade)
 O painel já consegue **ler** quantas revisões você fez (`ankiConnect.reviewStats`), mas o agendador
 não usa esse dado. Então um cartão revisado no Anki continua aparecendo como devido aqui.
 **Caminho:** mapear nota do Anki → `ref` do agendador (provavelmente pela frente do cartão) e, ao ler
 o histórico, empurrar o `due` dos itens correspondentes. Cuidado: não inventar `reps`/`ease` a
 partir de dados que o add-on não dá.
+
+### 5.1b Baralho: próximos passos naturais
+`src/core/baralho.js` cobre o essencial do Anki. O que falta, em ordem de valor: otimizar os pesos do
+FSRS com o histórico (`state.deck.registro` já guarda nota, data, S e D de cada resposta — precisa de
+centenas de revisões antes); *fuzz* nos intervalos; tipo de cartão "completar a frase" usando o
+exemplo; mapa de calor de dias estudados. Cuidado: nada disso pode virar evidência de proficiência.
 
 ### 5.2 Currículo gramatical acaba em 50 pontos
 Cobre até perto de HSK 3. Para um intensivo longo, faltam estruturas de HSK 4+. Acrescentar em

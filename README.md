@@ -36,14 +36,14 @@ O servidor escuta apenas em `127.0.0.1` e não expõe nada na rede (veja abaixo 
 npm test     # node --test tests/   (Node 18+)
 ```
 
-245 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
+272 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
 exportação para o Anki, exercícios, recomendações, o pipeline de LLM (validação do pacote, briefing,
 ingestão, gerador por linha de comando), a repetição espaçada (intervalos, recaídas, leeches, fila de
 revisão), o currículo gramatical, a sessão persistida (inclusive o ciclo de salvar e recarregar no
 meio do exercício), o áudio (voz, escuta, ditado, gravação, envio de mídia ao Anki), a reavaliação
 periódica, o servidor (persistência após `SIGKILL`, backups, chave da rede local, mídia, travessia de
 caminho, manifesto do celular), a chamada direta à Claude API pelo navegador (cabeçalhos, streaming,
-erros por situação, custo), a caixa postal celular ↔ computador pelo GitHub, a mesclagem de aparelhos, a pasta de publicação e a renderização de
+erros por situação, custo), a caixa postal celular ↔ computador pelo GitHub, o baralho interno (FSRS, fila do dia, irmãos, desfazer, XP sem proficiência), a mesclagem de aparelhos, a pasta de publicação e a renderização de
 todas as telas.
 
 ## O que está implementado (Fase 1)
@@ -82,6 +82,7 @@ todas as telas.
 | Celular autônomo: app publicado, offline, dados no aparelho (IndexedDB) | ✅ |
 | Geração do pacote pelo próprio celular, com chave da Claude API no aparelho | ✅ |
 | Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
+| Baralho interno estilo Anki (FSRS, 4 notas, passos, navegador, estatísticas), sem precisar do Anki | ✅ |
 | Service worker para funcionar em modo avião | ✅ |
 | Mesclagem de dois aparelhos sem perder histórico | ✅ |
 | Léxico que cresce a cada pacote (segmentação e pinyin melhoram sozinhos) | ✅ |
@@ -100,6 +101,30 @@ todas as telas.
 - **Importação de PDF/documentos/áudio**: só entrada por texto colado.
 - Fase 2 (duplicatas via Anki, relatórios semanais automáticos) e Fase 3 (áudio, conversa simulada)
   não foram implementadas.
+
+## Baralho: um pequeno Anki dentro do app
+
+Para quem não quer (ou não pode, como no iPhone sem pagar o AnkiMobile) depender do Anki. Aba
+**Baralho**.
+
+- **Algoritmo FSRS-4.5**, o mesmo que o Anki usa hoje, com os pesos padrão e retenção desejada
+  ajustável (90% por padrão).
+- **Cartões vêm do que você aprova** em *Criar cartões* (inclusive o vocabulário do pacote do dia) ou
+  do botão *Adicionar cartão*. Cada palavra vira até três cartões: **reconhecer** (汉字 → português),
+  **produzir** (português → 汉字) e, se ligado, **ouvir** (áudio → significado). Os irmãos nunca
+  aparecem no mesmo dia.
+- **Estudo como no Anki:** passos de 1 e 10 min para cartões novos, os quatro botões (Errei, Difícil,
+  Bom, Fácil) mostrando o próximo intervalo, limite de novos e de revisões por dia, desfazer. No
+  computador: Espaço mostra a resposta (e depois vale "Bom"), 1–4 dão a nota, Z desfaz. O áudio toca
+  ao mostrar a resposta.
+- **Navegador:** buscar, filtrar (novos, em revisão, suspensos, problemáticos), editar, suspender,
+  esquecer, excluir. Cartão errado 8 vezes é marcado como problemático, com a sugestão de reescrevê-lo.
+- **Estatísticas:** respondidos e acertos de hoje, retenção dos últimos 30 dias (só cartões já
+  formados), cartões novos/jovens/maduros e previsão de revisões para 7 dias.
+
+Revisar rende XP (uma sessão por dia, a partir de 10 respostas) mas **não** mexe na proficiência: a
+nota é você quem dá. Se a palavra já está na revisão do pacote do dia, a resposta conta lá também. A
+exportação para o Anki de verdade continua disponível para quem quiser os dois.
 
 ## Geração diária de conteúdo por LLM
 

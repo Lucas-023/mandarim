@@ -13,6 +13,8 @@ import { assessmentStatus, lastAssessment } from '../core/assessment.js';
 import { reviewStats } from '../core/ankiConnect.js';
 import { formatDateTime as fmt } from './dom.js';
 import { grammarProgress, nextGrammarPoints } from '../core/content/grammar.js';
+import { resumoBaralho } from './baralho.js';
+import { estatisticas } from '../core/baralho.js';
 
 export function renderDashboard(ctx) {
   const { state } = ctx;
@@ -50,7 +52,9 @@ export function renderDashboard(ctx) {
     h('div', { class: 'grid-2' },
       stat('Itens de exercício respondidos hoje', itemsToday, 'Registrado pelo próprio app'),
       stat('Cartões novos aprovados hoje', newCardsToday, 'Aprovados ou exportados hoje'),
-      renderAnkiStat(ctx)),
+      stat('Cartões revisados no baralho hoje', estatisticas(state).respondidosHoje, 'Respostas registradas no baralho do app'),
+      // O Anki de verdade só é lido no computador (AnkiConnect); no celular é ruído.
+      ctx.store.mode === 'server' || state.settings.usesAnki || state.ankiStats ? renderAnkiStat(ctx) : null),
   ));
 
   // Reavaliação periódica
@@ -96,6 +100,9 @@ export function renderDashboard(ctx) {
       button('Ajustar o que já domino', () => ctx.go('pack', { tab: 'gramatica' }), { kind: 'ghost' }))));
 
   // Pacote do dia gerado por LLM
+  const baralho = resumoBaralho(ctx);
+  if (baralho) wrap.append(baralho);
+
   const packEntry = latestPack(state);
   if (packEntry) {
     const pack = packEntry.pack;

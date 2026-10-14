@@ -14,6 +14,7 @@ const { renderActivities } = await import('../src/ui/activities.js');
 const { renderHistory } = await import('../src/ui/history.js');
 const { renderSettings } = await import('../src/ui/settings.js');
 const { renderPack } = await import('../src/ui/pack.js');
+const { renderBaralho } = await import('../src/ui/baralho.js');
 const { ingestPack } = await import('../src/core/packs.js');
 const { resetRegistry } = await import('../src/core/content/lexicon.js');
 const REAL_PACK = JSON.parse(
@@ -144,12 +145,19 @@ test('relatório do nivelamento mostra habilidades, limitações e plano', () =>
 test('painel não inventa nível nem habilidades antes do nivelamento', () => {
   const state = emptyState();
   state.profile.onboardingDone = true;
-  const view = renderDashboard(makeCtx(state));
+  const ctx = makeCtx(state);
+  ctx.store.mode = 'server';
+  const view = renderDashboard(ctx);
   assert.match(view.textContent, /Nível ainda não estimado/);
   assert.match(view.textContent, /não avaliada/);
   assert.match(view.textContent, /Revisões no Anki hoje/);
   assert.match(view.textContent, /não configurado/);
   assert.match(view.textContent, /Nada é estimado se a leitura falhar/);
+  // No celular o Anki de verdade não é lido; vale o baralho do app.
+  ctx.store.mode = 'device';
+  const noCelular = renderDashboard(ctx).textContent;
+  assert.doesNotMatch(noCelular, /Revisões no Anki hoje/);
+  assert.match(noCelular, /Cartões revisados no baralho hoje/);
 });
 
 test('painel mostra XP, meta e recomendação explicada depois do nivelamento', () => {
@@ -489,4 +497,94 @@ test('caixa postal: token colado no campo do repositório é explicado, não cha
   campos[0].value = '';
   await view.find(byButton('Guardar e testar')).click();
   assert.match(ctx.toasts.at(-1).m, /está vazio/);
+});
+
+
+// ───────────────────────────── baralho ─────────────────────────────
+
+function estadoComBaralho() {
+  const s = emptyState();
+  s.profile.onboardingDone = true;
+  s.cardDrafts.push(
+    { id: 'a', front: '踢球', back: 'jogar bola', pinyin: 'tī qiú', status: 'approved', createdAt: '2026-10-01T00:00:00Z' },
+    { id: 'b', front: '传球', back: 'passar a bola', pinyin: 'chuán qiú', status: 'pending', createdAt: '2026-10-01T00:00:00Z' },
+  );
+  return s;
+}
+
+test('baralho vazio explica de onde vêm os cartões', () => {
+  const texto = renderBaralho(makeCtx(emptyState())).textContent;
+  assert.match(texto, /baralho está vazio/);
+  assert.match(texto, /Opções do baralho/);
+});
+
+test('baralho: aprovado entra sozinho, pendente é apontado para aprovação', () => {
+  const ctx = makeCtx(estadoComBaralho());
+  const view = renderBaralho(ctx);
+  assert.equal(ctx.state.deck.cartoes.length, 2, 'reconhecer + produzir do aprovado');
+  assert.match(view.textContent, /1 cartão\(ões\) aguardando sua aprovação/);
+  view.find(byButton('Estudar agora')).click();
+  assert.deepEqual(ctx.navigations.at(-1), { view: 'deck', params: { modo: 'estudar' } });
+});
+
+test('estudar: frente sem resposta; mostrar revela pinyin e os 4 botões com intervalo; Bom registra', () => {
+  const ctx = makeCtx(estadoComBaralho(), { modo: 'estudar' });
+  let view = renderBaralho(ctx);
+  assert.match(view.textContent, /踢球/);
+  assert.doesNotMatch(view.textContent, /jogar bola/, 'a resposta não aparece antes da hora');
+  view.find(byButton('Mostrar resposta')).click();
+  view = renderBaralho(ctx);
+  assert.match(view.textContent, /jogar bola/);
+  assert.match(view.textContent, /tī qiú/);
+  const bom = view.find(byButtonLike('Bom'));
+  assert.match(bom.textContent, /10 min/);
+  bom.click();
+  assert.equal(ctx.state.deck.registro.length, 1);
+  assert.equal(ctx.state.deck.registro[0].nota, 3);
+});
+
+test('estudar pelo teclado: Espaço mostra, 1 = Errei, Z desfaz', () => {
+  const ctx = makeCtx(estadoComBaralho(), { modo: 'estudar' });
+  renderBaralho(ctx);
+  ctx.ui.keyHandler({ key: ' ', preventDefault() {} });
+  renderBaralho(ctx);
+  ctx.ui.keyHandler({ key: '1' });
+  assert.equal(ctx.state.deck.registro.at(-1).nota, 1);
+  renderBaralho(ctx);
+  ctx.ui.keyHandler({ key: 'z' });
+  assert.equal(ctx.state.deck.registro.length, 0);
+});
+
+test('adicionar cartão no baralho: entra aprovado, com pinyin do dicionário, e recusa duplicata', () => {
+  const ctx = makeCtx(estadoComBaralho(), { modo: 'adicionar' });
+  const view = renderBaralho(ctx);
+  const [hz, , pt] = view.findAll(byTag('input'));
+  hz.value = '你好';
+  pt.value = 'olá';
+  view.find(byButton('Adicionar')).click();
+  const novo = ctx.state.cardDrafts.find((d) => d.front === '你好');
+  assert.equal(novo.status, 'approved');
+  assert.ok(novo.pinyin, 'pinyin preenchido pelo léxico');
+  assert.ok(ctx.state.deck.cartoes.some((c) => c.draftId === novo.id));
+  view.find(byButton('Adicionar')).click();
+  assert.match(ctx.toasts.at(-1).m, /já existe/);
+});
+
+test('navegar: lista, suspende e exclui', () => {
+  const ctx = makeCtx(estadoComBaralho(), { modo: 'navegar' });
+  let view = renderBaralho(ctx);
+  assert.match(view.textContent, /踢球/);
+  assert.doesNotMatch(view.textContent, /传球/, 'pendente não está no baralho');
+  view.find(byButton('Suspender')).click();
+  assert.ok(ctx.state.deck.cartoes.some((c) => c.suspenso));
+  view = renderBaralho(ctx);
+  view.find(byButton('Excluir')).click();
+  assert.equal(ctx.state.deck.cartoes.length, 0);
+  assert.equal(ctx.state.cardDrafts.find((d) => d.id === 'a').status, 'rejected');
+});
+
+test('painel mostra o resumo do baralho quando há cartões', () => {
+  const ctx = makeCtx(estadoComBaralho());
+  renderBaralho(ctx);
+  assert.match(renderDashboard(ctx).textContent, /Estudar baralho/);
 });
