@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 
 import {
   normalizarRepo, paraBase64, deBase64, clienteGitHub, testarCaixa, sincronizar,
-  lerConfigCaixa, gravarConfigCaixa, anotarNaConfig, madrugadaLocal,
+  lerConfigCaixa, gravarConfigCaixa, anotarNaConfig, madrugadaLocal, repoSugerido,
 } from '../src/core/caixaPostal.js';
 import { emptyState } from '../src/core/storage.js';
 import { ingestPack } from '../src/core/packs.js';
@@ -83,6 +83,15 @@ test('repositório é aceito como dono/nome, URL ou endereço SSH', () => {
   assert.equal(normalizarRepo('https://github.com/Lucas-023/mandarim-dados'), 'Lucas-023/mandarim-dados');
   assert.equal(normalizarRepo('git@github.com:Lucas-023/mandarim-dados.git'), 'Lucas-023/mandarim-dados');
   assert.equal(normalizarRepo('mandarim-dados'), null);
+  // O teclado do iPhone: traço tipográfico, espaços, @ do autocompletar.
+  assert.equal(normalizarRepo(' Lucas–023 / mandarim—dados '), 'Lucas-023/mandarim-dados');
+  assert.equal(normalizarRepo('@Lucas-023/mandarim-dados'), 'Lucas-023/mandarim-dados');
+  assert.equal(normalizarRepo('github_pat_11ABCDEF'), null);
+});
+
+test('o campo do repositório vem preenchido a partir do endereço do Pages', () => {
+  assert.equal(repoSugerido('lucas-023.github.io'), 'lucas-023/mandarim-dados');
+  assert.equal(repoSugerido('127.0.0.1'), '');
 });
 
 test('base64 preserva caracteres chineses e acentos', () => {

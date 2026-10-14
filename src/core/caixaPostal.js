@@ -58,11 +58,27 @@ export function anotarNaConfig(campos, opts) {
   return gravarConfigCaixa({ ...atual, ...campos }, opts);
 }
 
-/** Aceita "dono/repo", URL https ou endereço SSH. Devolve "dono/repo" ou null. */
+/**
+ * Aceita "dono/repo", URL https ou endereço SSH. Devolve "dono/repo" ou null.
+ * Tolera o que o teclado do iPhone faz sozinho: espaço, traço tipográfico
+ * (– — ‐) no lugar do hífen e barra de largura total.
+ */
 export function normalizarRepo(texto) {
-  const t = String(texto || '').trim().replace(/\.git$/, '').replace(/\/+$/, '');
+  const t = String(texto || '')
+    .replace(/\s+/g, '')
+    .replace(/[\u2010-\u2015\u2212\uFE63\uFF0D]/g, '-')
+    .replace(/\uFF0F/g, '/')
+    .replace(/^@/, '')
+    .replace(/\.git$/, '')
+    .replace(/\/+$/, '');
   const m = t.match(/(?:github\.com[/:])?([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)$/);
   return m ? `${m[1]}/${m[2]}` : null;
+}
+
+/** Sugestão de repositório a partir do endereço do Pages (dono.github.io → dono/mandarim-dados). */
+export function repoSugerido(hostname = globalThis.location?.hostname || '') {
+  const m = String(hostname).match(/^([A-Za-z0-9-]+)\.github\.io$/i);
+  return m ? `${m[1]}/mandarim-dados` : '';
 }
 
 // ---------------------------------------------------------------- base64 UTF-8

@@ -4,7 +4,7 @@
  */
 import { h, card, button, field } from './dom.js';
 import {
-  lerConfigCaixa, gravarConfigCaixa, anotarNaConfig, normalizarRepo,
+  lerConfigCaixa, gravarConfigCaixa, anotarNaConfig, normalizarRepo, repoSugerido,
   clienteGitHub, testarCaixa, sincronizar,
 } from '../core/caixaPostal.js';
 import { ingestPack } from '../core/packs.js';
@@ -114,8 +114,16 @@ function quando(iso) {
 
 export function cartaoCaixa(ctx) {
   const cfg = lerConfigCaixa();
-  let repoDigitado = cfg?.repo || '';
-  let tokenDigitado = '';
+  // Lê os campos na hora do toque: colar ou preencher automaticamente no iPhone
+  // nem sempre dispara o evento de digitação.
+  const campoRepo = h('input', {
+    type: 'text', value: cfg?.repo || repoSugerido(), placeholder: 'dono/mandarim-dados', autocomplete: 'off',
+    autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
+  });
+  const campoToken = h('input', {
+    type: 'password', placeholder: cfg ? '(mantém o atual se ficar em branco)' : 'github_pat_…', autocomplete: 'off',
+    autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
+  });
 
   const status = cfg
     ? h('div', { class: 'hint' },
@@ -139,24 +147,25 @@ export function cartaoCaixa(ctx) {
       'devidas e, se ativado, as lacunas das conversas). Histórico completo, cartões e gravações não saem ' +
       'do aparelho. O token fica só neste navegador e não entra no arquivo exportado.'),
     status,
-    field('Repositório privado',
-      h('input', {
-        type: 'text', value: repoDigitado, placeholder: 'Lucas-023/mandarim-dados', autocomplete: 'off',
-        autocapitalize: 'off', spellcheck: 'false',
-        onInput: (e) => { repoDigitado = e.target.value; },
-      }),
-      'Formato dono/nome. Precisa ser privado — repositório público é recusado.'),
-    field('Token do GitHub',
-      h('input', {
-        type: 'password', placeholder: cfg ? '(mantém o atual se ficar em branco)' : 'github_pat_…', autocomplete: 'off',
-        onInput: (e) => { tokenDigitado = e.target.value.trim(); },
-      }),
+    field('Repositório privado', campoRepo,
+      'Formato dono/nome, ex.: Lucas-023/mandarim-dados. Precisa ser privado — repositório público é recusado.'),
+    field('Token do GitHub', campoToken,
       'Token "fine-grained" com acesso SÓ a este repositório e permissão "Contents: Read and write".'),
     h('div', { class: 'actions' },
       button('Guardar e testar', async () => {
-        const repo = normalizarRepo(repoDigitado);
-        const token = tokenDigitado || cfg?.token;
-        if (!repo) return ctx.toast('Repositório inválido. Use o formato dono/nome.', 'error');
+        const digitado = campoRepo.value;
+        const repo = normalizarRepo(digitado);
+        const token = campoToken.value.replace(/\s+/g, '') || cfg?.token;
+        if (!repo && /^(github_pat_|ghp_|gho_)/.test(digitado.trim())) {
+          campoRepo.value = repoSugerido();
+          return ctx.toast('Isso é o token, e foi colado no campo do REPOSITÓRIO. O token vai no segundo ' +
+            'campo; no primeiro vai dono/nome, ex.: Lucas-023/mandarim-dados.', 'error');
+        }
+        if (!repo) {
+          return ctx.toast(digitado.trim()
+            ? `Não reconheci "${digitado.trim()}" como repositório. Use dono/nome, ex.: Lucas-023/mandarim-dados.`
+            : 'O campo do repositório está vazio. Escreva dono/nome, ex.: Lucas-023/mandarim-dados.', 'error');
+        }
         if (!token) return ctx.toast('Cole o token do GitHub.', 'error');
         ctx.toast('Testando o acesso ao repositório…', 'info');
         const teste = await testarCaixa(clienteGitHub({ repo, token }));

@@ -474,3 +474,19 @@ test('no aparelho, configurações oferecem receber pacotes do computador e dize
   ctx.store.mode = 'server';
   assert.doesNotMatch(renderSettings(ctx).textContent, /Receber pacotes do computador/);
 });
+
+test('caixa postal: token colado no campo do repositório é explicado, não chamado de "inválido"', async () => {
+  const ctx = makeCtx(emptyState());
+  ctx.store.mode = 'device';
+  const view = renderSettings(ctx);
+  const campos = view.findAll((el) => byTag('input')(el) && el.getAttribute('placeholder') === 'dono/mandarim-dados');
+  assert.equal(campos.length, 1);
+  campos[0].value = 'github_pat_11ABCDEFG';
+  await view.find(byButton('Guardar e testar')).click();
+  assert.match(ctx.toasts.at(-1).m, /foi colado no campo do REPOSITÓRIO/);
+  assert.doesNotMatch(ctx.toasts.at(-1).m, /github_pat_11ABCDEFG/);
+
+  campos[0].value = '';
+  await view.find(byButton('Guardar e testar')).click();
+  assert.match(ctx.toasts.at(-1).m, /está vazio/);
+});
