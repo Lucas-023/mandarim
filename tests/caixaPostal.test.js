@@ -50,7 +50,9 @@ function githubFalso({ privado = true, push = true } = {}) {
       if (gh.falharRede) throw new TypeError('Load failed');
       assert.match(opcoes.headers.Authorization, /^Bearer /);
       const m = url.match(/^https:\/\/api\.github\.com\/repos\/([^/]+\/[^/]+)(?:\/contents\/(.*))?$/);
+      if (url.startsWith('https://api.github.com/user/repos')) return resposta(200, (gh.visiveis || []).map((n) => ({ full_name: n })));
       if (!m) return resposta(404, { message: 'Not Found' });
+      if (gh.semAcesso) return resposta(404, { message: 'Not Found' });
       if (m[2] === undefined) return resposta(200, { full_name: m[1], private: privado, permissions: { push } });
       const caminho = decodeURIComponent(m[2]);
       if ((opcoes.method || 'GET') === 'PUT') {
@@ -105,6 +107,18 @@ test('repositório público é recusado: os dados de estudo ficariam visíveis',
   assert.match(r.error, /PÚBLICO/);
   assert.equal((await testarCaixa(githubFalso({ push: false }).cliente)).ok, false);
   assert.deepEqual(await testarCaixa(githubFalso().cliente), { ok: true, nome: 'eu/dados' });
+});
+
+test('repositório 404: o diagnóstico diz se é o token sem acesso a privados, outro repo ou nome errado', async () => {
+  const gh = githubFalso();
+  gh.semAcesso = true;
+  gh.visiveis = [];
+  assert.match((await testarCaixa(gh.cliente)).error, /Public repositories.*Only select repositories.*dados/s);
+  gh.visiveis = ['eu/outro'];
+  assert.match((await testarCaixa(gh.cliente)).error, /só enxerga: eu\/outro/);
+  gh.visiveis = ['Eu/dados'];
+  gh.cliente = clienteGitHub({ repo: 'ue/dados', token: 'github_pat_teste', fetch: (u, o) => gh.fetch(u, o) });
+  assert.match((await testarCaixa(gh.cliente)).error, /token enxerga "Eu\/dados"/);
 });
 
 test('caixa vazia: pede o pacote de hoje e o de amanhã, este só para a madrugada', async () => {

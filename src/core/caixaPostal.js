@@ -115,7 +115,7 @@ export function clienteGitHub({ repo, token, fetch: buscar = globalThis.fetch })
     let resposta;
     try {
       // no-store: a API responde com max-age=60, e um cache velho esconderia o pacote novo.
-      resposta = await buscar(`${base}${caminho}`, { cache: 'no-store', ...opcoes, headers: { ...cabecalhos, ...opcoes.headers } });
+      resposta = await buscar(caminho.startsWith('https://') ? caminho : `${base}${caminho}`, { cache: 'no-store', ...opcoes, headers: { ...cabecalhos, ...opcoes.headers } });
     } catch (err) {
       return { ok: false, status: 0, error: `sem conexão com o GitHub (${err.message})` };
     }
@@ -133,6 +133,12 @@ export function clienteGitHub({ repo, token, fetch: buscar = globalThis.fetch })
     repo,
     /** Metadados do repositório (serve para testar token e visibilidade). */
     info: () => chamar(''),
+    /** Repositórios que o token enxerga (diagnóstico quando o repositório dá 404). */
+    async reposVisiveis() {
+      const r = await chamar(`${API}/user/repos?per_page=100&sort=updated`);
+      if (!r.ok) return r;
+      return { ok: true, nomes: (Array.isArray(r.corpo) ? r.corpo : []).map((x) => x.full_name) };
+    },
     /** Lista uma pasta. Pasta inexistente (ou repositório vazio) é lista vazia, não erro. */
     async listar(pasta) {
       const r = await chamar(caminhoConteudo(pasta));
@@ -186,6 +192,7 @@ function explicarErro(status, corpo) {
  */
 export async function testarCaixa(cliente) {
   const r = await cliente.info();
+  if (r.status === 404) return { ok: false, error: await diagnosticar404(cliente) };
   if (!r.ok) return r;
   if (!r.corpo?.private) {
     return { ok: false, error: 'este repositório é PÚBLICO: seus dados de estudo ficariam visíveis. Use um repositório privado.' };
@@ -194,6 +201,29 @@ export async function testarCaixa(cliente) {
     return { ok: false, error: 'o token só lê este repositório; ele precisa de "Contents: Read and write"' };
   }
   return { ok: true, nome: r.corpo.full_name };
+}
+
+/**
+ * 404 do GitHub junta três situações diferentes; separá-las poupa o usuário de
+ * adivinhar. O caso mais comum: o token foi criado com o padrão "Public
+ * repositories", que não enxerga repositório privado.
+ */
+async function diagnosticar404(cliente) {
+  const caminho = 'GitHub → Settings → Developer settings → Fine-grained tokens → o token → Edit';
+  const v = await cliente.reposVisiveis();
+  if (!v.ok) return `não consegui verificar o token (${v.error})`;
+  const alvo = cliente.repo.toLowerCase();
+  const parecido = v.nomes.find((n) => n.toLowerCase().split('/')[1] === alvo.split('/')[1]);
+  if (parecido) return `o nome não confere: o token enxerga "${parecido}". Escreva exatamente esse nome no campo do repositório.`;
+  if (!v.nomes.length) {
+    return 'o token é válido, mas não enxerga nenhum repositório privado. Ele provavelmente foi criado com ' +
+      `"Public repositories". Corrija em ${caminho} → Repository access → "Only select repositories" → ` +
+      `${alvo.split('/')[1]}, e em Permissions → Contents: "Read and write". Depois salve e teste de novo.`;
+  }
+  return `o token é válido, mas não tem acesso a ${cliente.repo}. Ele só enxerga: ${v.nomes.slice(0, 5).join(', ')} ` +
+    '(token criado com "Public repositories" só vê os públicos). ' +
+    `Corrija em ${caminho} → Repository access → "Only select repositories" → ${alvo.split('/')[1]}, ` +
+    'e em Permissions → Contents: "Read and write".';
 }
 
 // ---------------------------------------------------------------- sincronia

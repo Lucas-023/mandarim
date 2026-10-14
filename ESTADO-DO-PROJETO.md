@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-10-14. Testes: **244 passando** (`npm test`).
+> Última atualização: 2026-10-14. Testes: **245 passando** (`npm test`).
 
 ---
 
@@ -29,7 +29,7 @@ Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 244 testes, ~4s, sem rede
+npm test                       # 245 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -124,7 +124,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  18 arquivos, 244 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  18 arquivos, 245 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -294,7 +294,7 @@ do PC gera o pacote no dia errado.
 | 8 | Este documento, ponteiro no `CLAUDE.md`, repositório próprio do projeto e commit inicial | pedido: não gastar tokens recontando a história a cada sessão |
 | 9 | Push para `github.com/Lucas-023/mandarim` (remote `origin`, SSH) | pedido: ter o repositório chamado `mandarim` |
 | 10 | Repositório público + Pages via Actions; app no ar em `lucas-023.github.io/mandarim` | pedido: usar no celular |
-| 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 244) | pedido: não pagar API, iPhone |
+| 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 245) | pedido: não pagar API, iPhone |
 
 ---
 
