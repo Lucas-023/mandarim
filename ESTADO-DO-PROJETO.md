@@ -46,10 +46,11 @@ inicial `19b4884`, 84 arquivos), publicado em **`git@github.com:Lucas-023/mandar
 (`~/.ssh/id_ed25519`, já registrada no GitHub); o `gh` CLI não está instalado. Para publicar mudanças
 basta `git push`.
 
-Falta uma vez só, no GitHub: **Settings → Pages → Source: GitHub Actions**. O workflow
-`.github/workflows/pages.yml` roda os testes, monta `publicar/` e publica. Para o Pages gratuito o
-repositório precisa ser público — o que expõe o **código**, nunca os dados (ficam no aparelho;
-`data/` está no `.gitignore` e há teste que falha se vazar para a publicação).
+**Publicado em <https://lucas-023.github.io/mandarim/>** (2026-10-14). Repositório tornado público e
+Pages configurado com **Source: GitHub Actions**. O workflow `.github/workflows/pages.yml` roda os
+testes, monta `publicar/` e publica a cada push em `main`. Público expõe o **código**, nunca os dados
+(ficam no aparelho; `data/` está no `.gitignore` e há teste que falha se vazar para a publicação;
+conferido no ar: `data/state.json` dá 404).
 
 ### Três modos de armazenamento (decididos em tempo de execução)
 
@@ -260,6 +261,7 @@ aparece como "indisponível" se o add-on não expõe a ação.
 | 7 | IndexedDB, service worker, Claude API no navegador, mesclagem, publicação no Pages (210 → 223) | pedido: celular **sem** o PC ligado |
 | 8 | Este documento, ponteiro no `CLAUDE.md`, repositório próprio do projeto e commit inicial | pedido: não gastar tokens recontando a história a cada sessão |
 | 9 | Push para `github.com/Lucas-023/mandarim` (remote `origin`, SSH) | pedido: ter o repositório chamado `mandarim` |
+| 10 | Repositório público + Pages via Actions; app no ar em `lucas-023.github.io/mandarim` | pedido: usar no celular |
 
 ---
 
@@ -342,6 +344,9 @@ Registradas para ninguém cair de novo.
 9. **Rede de celular cai.** Toda chamada de rede precisa devolver `{ok:false, error}` em vez de
    lançar exceção: já quebrou no `mediaStore`.
 10. **Service worker não registra em HTTP simples.** Por isso o modo offline exige HTTPS (Pages).
+11. **Os primeiros runs do Pages falham em `configure-pages`** se o push vier antes de ligar o Pages
+    (e repositório privado em conta gratuita não tem Pages). Depois de ligar: aba **Actions** do
+    repositório (não Settings → Actions) → workflow → *Run workflow*.
 
 ---
 
