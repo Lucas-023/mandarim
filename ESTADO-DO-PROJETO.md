@@ -38,6 +38,22 @@ npm run seed:demo              # preenche data/state.json com dados FICTÍCIOS
 npm run timer:install          # timer do systemd: gera o pacote às 5h
 ```
 
+### Repositório e publicação
+
+O projeto tem **repositório git próprio**, na própria pasta (`git init` feito em 2026-10-14, commit
+inicial `19b4884`, 84 arquivos). Não há remote configurado ainda: publicar exige criar o repositório
+no GitHub (sugestão de nome: `mandarim`) e dar push.
+
+```bash
+git remote add origin git@github.com:<usuário>/mandarim.git   # ou https://
+git push -u origin main
+```
+
+Depois, no GitHub: **Settings → Pages → Source: GitHub Actions**. O workflow
+`.github/workflows/pages.yml` roda os testes, monta `publicar/` e publica. Para o Pages gratuito o
+repositório precisa ser público — o que expõe o **código**, nunca os dados (ficam no aparelho;
+`data/` está no `.gitignore` e há teste que falha se vazar para a publicação).
+
 ### Três modos de armazenamento (decididos em tempo de execução)
 
 | Modo | Quando | Onde ficam os dados | Geração do pacote |
@@ -115,7 +131,8 @@ A ordem aqui é de importância, não cronológica. Cada item diz **o que foi de
 
 O ambiente onde o projeto foi escrito **não tinha acesso ao registro npm**. Em vez de ficar
 bloqueado, o projeto virou ES modules puros, que rodam no navegador e no `node --test` sem
-transpilação. Efeito colateral bom: o app abre em qualquer máquina, e a pasta publicada tem 359 KB.
+transpilação. Efeito colateral bom: o app abre em qualquer máquina, e a pasta publicada tem ~365 KB
+(50 arquivos). O número exato sai de `npm run publicar`.
 **Se mudar:** qualquer dependência quebra o modo celular (o service worker lista arquivos locais) e
 obriga build no workflow do GitHub Pages.
 
@@ -244,6 +261,7 @@ aparece como "indisponível" se o add-on não expõe a ação.
 | 5 | Áudio (TTS, ditado, gravação, mídia no Anki), sessão persistida, teclado, aprovação em massa, reavaliação semanal, leitura do Anki, import JSON (193 → 202) | pedido: "faça tudo, especialmente salvar progresso se eu parar" |
 | 6 | Rede local com chave, manifesto, CSS de celular, resgate de dados órfãos (202 → 210) | pergunta: "dá para usar no celular?" |
 | 7 | IndexedDB, service worker, Claude API no navegador, mesclagem, publicação no Pages (210 → 223) | pedido: celular **sem** o PC ligado |
+| 8 | Este documento, ponteiro no `CLAUDE.md`, repositório próprio do projeto e commit inicial | pedido: não gastar tokens recontando a história a cada sessão |
 
 ---
 
@@ -303,9 +321,11 @@ fluxo, não pega problema de CSS, foco, rolagem ou toque. Validação visual rea
 
 Registradas para ninguém cair de novo.
 
-1. **O repositório git é `/home/lucas`, não o projeto.** Sem commits, com `.ssh`, `.aws` e `.gnupg`
-   dentro. `git add -A` dali comitaria a pasta pessoal inteira. O projeto tem repositório próprio
-   (`git init` feito na pasta do projeto). **Nunca** rodar git na raiz do home esperando o projeto.
+1. **Havia um `.git` solto em `/home/lucas`** — um `git init` acidental, nunca usado (zero commits,
+   zero arquivos rastreados, sem remote). O perigo era real: `git add -A` a partir da pasta do
+   projeto resolveria para aquele repositório e comitaria a pasta pessoal inteira (`.ssh`, `.aws`,
+   `.gnupg`, histórico do bash) — e o destino era o GitHub. Hoje o projeto tem repositório próprio.
+   **Sempre confira `git rev-parse --show-toplevel` antes do primeiro `git add` em um projeto novo.**
 2. **Node 18 nesta máquina dá segfault** em `buildDemoState()` seguido de `import()` dinâmico no mesmo
    one-liner. Os caminhos reais (imports estáticos) não têm problema; é quirk de script improvisado.
    Se acontecer, mover o código para um arquivo com imports no topo (`scripts/semear-demo.mjs`).
@@ -338,3 +358,57 @@ Registradas para ninguém cair de novo.
   respostas"), e testam a regra, não a implementação.
 - **Toda estimativa carrega a explicação em texto.** Se um número aparecer na tela sem poder
   justificar-se, está errado por construção.
+
+---
+
+## 8. Como manter este documento (leia antes de encerrar qualquer trabalho)
+
+Este arquivo só serve se estiver correto. A regra é simples: **conhecimento que ficou só na
+conversa está perdido.** Antes de encerrar uma tarefa relevante, passe por esta lista.
+
+### Gatilhos: quando atualizar
+
+| O que aconteceu | O que atualizar |
+|---|---|
+| Entreguei uma funcionalidade | linha nova em **§4**; remover/encolher o item correspondente em **§5**; marcar na tabela de situação do `README.md` |
+| Tomei uma decisão de projeto (escolhi X em vez de Y) | item novo em **§3**, com o motivo **e** o que quebra se alguém mudar sem pensar |
+| Perdi tempo com algo não óbvio (bug de ambiente, pegadinha de API, teste frágil) | item novo em **§6** — é a seção que mais economiza tempo futuro |
+| Criei ou movi arquivo no núcleo | **§2** (mapa dos arquivos) |
+| Descobri um limite honesto novo (algo que o sistema não consegue fazer bem) | **§5** se é para fazer, *Limitações conhecidas* do `README.md` se é para conviver |
+| Mudei número visível (testes, léxico, gramática, tamanho) | cabeçalho (**data e contagem de testes**), **§1** e onde mais aparecer |
+| Mudei como se roda, publica ou configura | **§1** e `README.md` |
+
+### Como manter os números certos
+
+Não escreva de memória. Estes comandos regeneram tudo que o documento afirma:
+
+```bash
+npm test 2>&1 | grep -E '^# (tests|pass|fail)'        # contagem de testes
+ls tests/*.js | wc -l                                  # arquivos de teste
+node -e "Promise.all([import('./src/core/content/lexicon.js'),import('./src/core/content/questions.js'),import('./src/core/content/grammar.js')]).then(([l,q,g])=>console.log('léxico',l.LEXICON.length,'| questões',q.QUESTIONS.length,'| gramática',g.GRAMMAR_SYLLABUS.length))"
+node -e "import('./src/core/prompts/pack.js').then(m=>console.log(m.PROMPT_VERSION))"   # versão do prompt
+npm run publicar | head -1                             # tamanho da publicação
+cat src/core/*.js src/core/*/*.js | wc -l              # linhas do núcleo
+```
+
+### Regras de escrita deste documento
+
+- **§3 é o coração.** Uma decisão sem motivo registrado será desfeita por alguém que não sabia o
+  motivo. Sempre escreva *por quê* e *o que quebra*.
+- **§5 é fila, não desejo.** Cada item precisa de contexto suficiente para alguém começar sem
+  reler nada: onde mexer, o que já existe, qual o cuidado.
+- **§6 é a seção mais valiosa.** Se algo custou mais de dez minutos para descobrir, vai para lá.
+- **Não inflar.** Item concluído sai de §5; história vira uma linha em §4, não um parágrafo.
+- **Honestidade acima de completude.** Se algo foi escrito mas nunca executado (como o backend
+  `api`), o documento diz isso com essas palavras.
+
+### Checklist de encerramento
+
+```
+[ ] npm test passando, com a contagem atualizada no cabeçalho e na §1
+[ ] §4 tem a linha da entrega
+[ ] §5 não lista mais o que acabou de ser feito
+[ ] §6 tem o que custou tempo nesta rodada
+[ ] README.md atualizado se mudou uso, limite ou situação
+[ ] data/ e chaves continuam fora do git (git status --ignored)
+```

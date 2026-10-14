@@ -8,8 +8,9 @@
 > Resumo em uma linha: Fase 1 completa + geração diária por LLM + repetição espaçada + currículo
 > gramatical + áudio + celular autônomo (GitHub Pages, IndexedDB, chave própria). 223 testes.
 >
-> Ao concluir um trabalho relevante neste projeto, **atualize `ESTADO-DO-PROJETO.md`** (§4 histórico,
-> §5 o que falta, §6 armadilhas) em vez de deixar o conhecimento só na conversa.
+> Ao concluir um trabalho relevante neste projeto, **atualize `ESTADO-DO-PROJETO.md`** seguindo a
+> §8 daquele arquivo ("Como manter este documento"), que tem os gatilhos, os comandos que regeneram
+> os números e um checklist de encerramento. Conhecimento que fica só na conversa está perdido.
 
 ---
 
