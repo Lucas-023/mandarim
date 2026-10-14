@@ -193,8 +193,9 @@ function render() {
   const state = store.state;
   ui.keyHandler = null;
 
-  // Onboarding é obrigatório antes de qualquer outra tela.
-  if (!state.profile.onboardingDone && current.view !== 'onboarding') {
+  // Onboarding é obrigatório antes de qualquer outra tela, exceto Configurações:
+  // num aparelho novo é lá que se cola a chave ou se restaura um backup.
+  if (!state.profile.onboardingDone && !['onboarding', 'settings'].includes(current.view)) {
     current = { view: 'onboarding', params: {} };
     location.hash = '#/onboarding';
   }
