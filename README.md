@@ -36,7 +36,7 @@ O servidor escuta apenas em `127.0.0.1` e não expõe nada na rede (veja abaixo 
 npm test     # node --test tests/   (Node 18+)
 ```
 
-239 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
+242 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
 exportação para o Anki, exercícios, recomendações, o pipeline de LLM (validação do pacote, briefing,
 ingestão, gerador por linha de comando), a repetição espaçada (intervalos, recaídas, leeches, fila de
 revisão), o currículo gramatical, a sessão persistida (inclusive o ciclo de salvar e recarregar no
@@ -318,7 +318,8 @@ Uma vez só:
 4. **No celular**, dentro do app instalado: Configurações → **Receber pacotes do computador** → repositório
    `SEU-USUARIO/mandarim-dados` e o token → *Guardar e testar*. Repositório público é recusado.
 
-Daí em diante: ao abrir o app, o celular busca pacotes novos e deixa o pedido do dia seguinte
+Daí em diante: ao abrir o app, o celular busca pacotes novos; e sempre que seus dados mudam (fim de
+exercício, nivelamento, conversa registrada) ou o app sai da tela, ele atualiza o pedido do dia seguinte,
 marcado para as 4h **no fuso do celular** (o computador pode estar em outro fuso: quem manda é o
 horário gravado no pedido). Se você abrir o app sem pacote do dia, ele pede na hora, e o computador
 atende em até 30 min. Se a geração falhar, o aviso aparece no celular; depois de 3 falhas no mesmo

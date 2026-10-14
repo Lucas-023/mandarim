@@ -22,7 +22,7 @@ import { renderActivities } from './ui/activities.js';
 import { renderHistory } from './ui/history.js';
 import { renderSettings } from './ui/settings.js';
 import { renderPack } from './ui/pack.js';
-import { sincronizarCaixa } from './ui/caixa.js';
+import { sincronizarCaixa, agendarEnvio, descarregarEnvio } from './ui/caixa.js';
 
 const VIEWS = {
   dashboard: { label: 'Painel', render: renderDashboard },
@@ -167,6 +167,8 @@ function commit(mutator, { silent = false } = {}) {
   const saved = store.save();
   if (!saved) toast('Não foi possível salvar os dados neste navegador.', 'error');
   for (const a of fresh) toast(`Conquista desbloqueada: ${a.title}`, 'success');
+  // Exercício pela metade não muda o briefing (a correção é no fim): só agenda fora dele.
+  if (!activeSession(store.state)) agendarEnvio(ctx);
   if (!silent) render();
   return result;
 }
@@ -369,6 +371,9 @@ async function registrarServiceWorker() {
   // No iPhone o app instalado volta do fundo sem recarregar: sincroniza ao reaparecer.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') sincronizarCaixa(ctx(), { automatico: true });
+    // Saindo da tela: manda já o que estava esperando (o iOS congela o app logo depois).
+    else descarregarEnvio();
   });
+  window.addEventListener('pagehide', () => descarregarEnvio());
   registrarServiceWorker();
 })();

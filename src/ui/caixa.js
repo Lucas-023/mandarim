@@ -24,7 +24,7 @@ export function caixaConfigurada() {
  * fala quando chega pacote ou o computador avisa erro — falta de rede no
  * metrô não merece aviso.
  */
-export async function sincronizarCaixa(ctx, { automatico = false } = {}) {
+export async function sincronizarCaixa(ctx, { automatico = false, forcar = false } = {}) {
   const cfg = lerConfigCaixa();
   if (!cfg?.repo || !cfg?.token || ctx.store.mode === 'server') return null;
   // Antes do cadastro o briefing seria genérico: pedir pacote não faz sentido.
@@ -32,8 +32,12 @@ export async function sincronizarCaixa(ctx, { automatico = false } = {}) {
     if (!automatico) ctx.toast('Acesso guardado. Os pedidos começam depois do cadastro inicial.', 'info');
     return null;
   }
-  if (automatico && cfg.ultimaTentativa && Date.now() - Date.parse(cfg.ultimaTentativa) < INTERVALO_AUTOMATICO_MS) return null;
-  if (emAndamento) return emAndamento;
+  if (automatico && !forcar && cfg.ultimaTentativa && Date.now() - Date.parse(cfg.ultimaTentativa) < INTERVALO_AUTOMATICO_MS) return null;
+  if (emAndamento) {
+    // Envio forçado durante outra sincronia: espera e manda o estado mais novo.
+    if (!forcar) return emAndamento;
+    await emAndamento.catch(() => {});
+  }
 
   emAndamento = (async () => {
     anotarNaConfig({ ultimaTentativa: new Date().toISOString() });
@@ -77,6 +81,30 @@ export async function sincronizarCaixa(ctx, { automatico = false } = {}) {
   } finally {
     emAndamento = null;
   }
+}
+
+/**
+ * Envio depois que os dados mudam (fim de exercício, nivelamento, conversa
+ * registrada). Espera um pouco para juntar gravações seguidas; se o app sair
+ * da tela antes, `descarregarEnvio` manda na hora. Sem isso, quem estuda à
+ * noite e fecha o app recebe amanhã um pacote que não viu a última sessão.
+ */
+const ESPERA_ENVIO_MS = 15 * 1000;
+let envioPendente = null;
+
+/** `obterCtx` é função: o envio usa o estado da hora do envio, não o do agendamento. */
+export function agendarEnvio(obterCtx) {
+  if (!caixaConfigurada()) return;
+  clearTimeout(envioPendente?.timer);
+  envioPendente = { obterCtx, timer: setTimeout(descarregarEnvio, ESPERA_ENVIO_MS) };
+}
+
+export function descarregarEnvio() {
+  if (!envioPendente) return null;
+  clearTimeout(envioPendente.timer);
+  const { obterCtx } = envioPendente;
+  envioPendente = null;
+  return sincronizarCaixa(obterCtx(), { automatico: true, forcar: true });
 }
 
 function quando(iso) {

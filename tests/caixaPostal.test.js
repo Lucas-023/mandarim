@@ -16,6 +16,7 @@ import { ingestPack } from '../src/core/packs.js';
 import { validatePack } from '../src/core/packValidation.js';
 import { resetRegistry } from '../src/core/content/lexicon.js';
 import { buildBriefing } from '../src/core/briefing.js';
+import { agendarEnvio, descarregarEnvio, sincronizarCaixa } from '../src/ui/caixa.js';
 import { main as atenderCaixa, pedidosAtendiveis } from '../tools/caixaPostal.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -199,6 +200,71 @@ test('configuração (com o token) fica fora do estado, em armazenamento própri
   gravarConfigCaixa(null, { storage });
   assert.equal(lerConfigCaixa({ storage }), null);
   assert.ok(!('caixa' in emptyState().settings));
+});
+
+test('escrita do pedido usa keepalive: termina mesmo se o app for fechado em seguida', async () => {
+  const gh = githubFalso();
+  const opcoesVistas = [];
+  const original = gh.fetch;
+  gh.fetch = async (url, opcoes = {}) => {
+    opcoesVistas.push(opcoes);
+    return original(url, opcoes);
+  };
+  await sincronizar(estadoCadastrado(), gh.cliente, { hoje: HOJE, agora: AGORA });
+  const puts = opcoesVistas.filter((o) => o.method === 'PUT');
+  assert.ok(puts.length > 0);
+  assert.ok(puts.every((o) => o.keepalive === true));
+});
+
+/** Aparelho configurado: localStorage e fetch globais trocados por falsos. */
+function aparelhoComCaixa(t) {
+  const gh = githubFalso();
+  const mapa = new Map();
+  const antes = { localStorage: globalThis.localStorage, fetch: globalThis.fetch };
+  globalThis.localStorage = { getItem: (k) => mapa.get(k) ?? null, setItem: (k, v) => mapa.set(k, v), removeItem: (k) => mapa.delete(k) };
+  globalThis.fetch = (u, o) => gh.fetch(u, o);
+  t.after(() => Object.assign(globalThis, antes));
+  gravarConfigCaixa({ repo: 'eu/dados', token: 'github_pat_teste' });
+  const state = estadoCadastrado();
+  const ctx = {
+    state, store: { mode: 'device' }, toasts: [],
+    toast: (m, k) => ctx.toasts.push({ m, k }),
+    commit: (fn) => fn(state),
+    render: () => {},
+  };
+  return { gh, ctx, state };
+}
+
+test('dados mudaram depois de uma sincronia recente: o envio agendado não espera os 5 minutos', async (t) => {
+  const { gh, ctx, state } = aparelhoComCaixa(t);
+  await sincronizarCaixa(ctx, { automatico: true });
+  const putsAntes = gh.chamadas.filter((c) => c.metodo === 'PUT').length;
+  assert.ok(putsAntes > 0);
+
+  // Sincronia automática logo depois é barrada pelo intervalo…
+  gh.chamadas.length = 0;
+  assert.equal(await sincronizarCaixa(ctx, { automatico: true }), null);
+  assert.equal(gh.chamadas.length, 0);
+
+  // …mas terminar um exercício muda o briefing e o envio agendado passa.
+  state.conversations.push({ id: 'c1', date: '2026-10-19', durationMin: 10, context: 'futebol',
+    couldNotSay: 'com que frequência eu jogo', newExpressions: [] });
+  agendarEnvio(() => ctx);
+  const r = await descarregarEnvio();
+  assert.equal(r.ok, true);
+  assert.ok(r.pedidos.length > 0, 'o pedido com o estado novo foi reenviado');
+  assert.equal(descarregarEnvio(), null, 'nada fica pendente depois de descarregar');
+});
+
+test('sem caixa configurada, agendar envio não faz nada', () => {
+  const antes = globalThis.localStorage;
+  globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+  try {
+    agendarEnvio(() => { throw new Error('não deveria montar contexto'); });
+    assert.equal(descarregarEnvio(), null);
+  } finally {
+    globalThis.localStorage = antes;
+  }
 });
 
 // ───────────────────────────── lado do computador ─────────────────────────────

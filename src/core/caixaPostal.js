@@ -139,10 +139,14 @@ export function clienteGitHub({ repo, token, fetch: buscar = globalThis.fetch })
       for (let tentativa = 0; tentativa < 2; tentativa += 1) {
         const atual = await this.ler(caminho);
         if (!atual.ok) return atual;
+        const corpo = JSON.stringify({ message: mensagem, content: paraBase64(texto), ...(atual.existe ? { sha: atual.sha } : {}) });
         const r = await chamar(caminhoConteudo(caminho), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: mensagem, content: paraBase64(texto), ...(atual.existe ? { sha: atual.sha } : {}) }),
+          body: corpo,
+          // keepalive deixa a escrita terminar mesmo se o app for fechado logo
+          // depois de estudar; o navegador só aceita corpo de até 64 KB.
+          keepalive: corpo.length < 60000,
         });
         if (r.ok) return { ok: true };
         if (r.status !== 409 && r.status !== 422) return r;

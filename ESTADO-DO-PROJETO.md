@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-10-14. Testes: **239 passando** (`npm test`).
+> Última atualização: 2026-10-14. Testes: **242 passando** (`npm test`).
 
 ---
 
@@ -29,7 +29,7 @@ Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 239 testes, ~4s, sem rede
+npm test                       # 242 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -118,7 +118,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  18 arquivos, 239 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  18 arquivos, 242 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -263,6 +263,10 @@ HTTPS com CORS, funciona fora de casa e o PC já tem SSH configurado.
 - **Horário absoluto no pedido (`naoAntesDe`)**: o PC está em America/Sao_Paulo e o celular na China.
   O PC não decide o "hoje"; atende o pedido quando o horário chega (amanhã = 4h no fuso do celular)
   e ignora pedido vencido há 36h. Por isso o timer é `*:00/30`, não "às 5h".
+- **Envio quando os dados mudam, não só ao abrir:** todo `commit` fora de exercício em andamento
+  agenda o envio (15 s); sair da tela (`visibilitychange`/`pagehide`) manda na hora, com `keepalive`
+  no PUT. Sem isso, quem estuda à noite e fecha o app recebe um pacote que não viu a última sessão.
+  O digest do briefing evita escrita repetida.
 - **Pacote revalidado no celular** (§3.5), e falha do PC vira `erros/DATA.json`, mostrado no
   celular; após 3 falhas no dia o PC para.
 **Se mudar:** trocar o briefing pelo estado inteiro vaza dados privados para o GitHub; usar o fuso
@@ -284,7 +288,7 @@ do PC gera o pacote no dia errado.
 | 8 | Este documento, ponteiro no `CLAUDE.md`, repositório próprio do projeto e commit inicial | pedido: não gastar tokens recontando a história a cada sessão |
 | 9 | Push para `github.com/Lucas-023/mandarim` (remote `origin`, SSH) | pedido: ter o repositório chamado `mandarim` |
 | 10 | Repositório público + Pages via Actions; app no ar em `lucas-023.github.io/mandarim` | pedido: usar no celular |
-| 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 239) | pedido: não pagar API, iPhone |
+| 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 242) | pedido: não pagar API, iPhone |
 
 ---
 
