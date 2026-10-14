@@ -1,0 +1,11 @@
+node_modules/
+*.log
+.DS_Store
+
+# Pasta gerada para publicação (reconstruída por scripts/preparar-publicacao.mjs)
+publicar/
+
+# Dados pessoais e conteúdo gerado: ficam só nesta máquina.
+# O estado tem seu histórico de estudo; os briefings e pacotes citam
+# o que você não conseguiu dizer nas conversas reais.
+data/

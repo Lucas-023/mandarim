@@ -1,0 +1,340 @@
+# Estado do projeto — Mandarin Quest
+
+> **Para quem chega agora (humano ou LLM):** este arquivo substitui a conversa que construiu o
+> projeto. Ele registra **o que existe**, **por que foi feito assim** e **o que falta**.
+> Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
+> (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
+>
+> Última atualização: 2026-10-14. Testes: **223 passando** (`npm test`).
+
+---
+
+## 1. O que é, em uma página
+
+App pessoal de estudo de mandarim para um brasileiro que mora na China, joga futebol com colegas
+chineses e está fazendo um intensivo. Resolve três perguntas por dia: o que já aprendi, onde tenho
+dificuldade, o que estudar agora.
+
+**Sem dependências de runtime.** HTML + CSS + JavaScript (ES modules) puros. Node só para o servidor
+local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm install` é necessário
+para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
+
+```
+Tamanho atual:  núcleo 5.344 linhas · interface 3.258 · servidor/scripts 1.074 · testes 3.219
+Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 50 pontos de gramática
+```
+
+### Como rodar
+
+```bash
+npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
+HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
+npm test                       # 223 testes, ~4s, sem rede
+npm run generate               # gera o pacote do dia (backend claude-code)
+npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
+npm run generate:mock          # pacote falso, para testar interface
+npm run publicar               # monta publicar/ para o GitHub Pages
+npm run seed:demo              # preenche data/state.json com dados FICTÍCIOS
+npm run timer:install          # timer do systemd: gera o pacote às 5h
+```
+
+### Três modos de armazenamento (decididos em tempo de execução)
+
+| Modo | Quando | Onde ficam os dados | Geração do pacote |
+|---|---|---|---|
+| `server` | aberto pelo PC com `npm start` | `data/state.json` | `claude -p` ou API, agendada às 5h |
+| `device` | celular / app publicado | IndexedDB do aparelho | Claude API com a chave do aparelho |
+| `local` | navegador sem IndexedDB | localStorage | não |
+| `memory` | armazenamento bloqueado | nada é salvo (avisa em vermelho) | não |
+
+---
+
+## 2. Mapa dos arquivos
+
+```
+CLAUDE.md               especificação original (não alterar a especificação; só o bloco de estado no topo)
+ESTADO-DO-PROJETO.md    este arquivo
+README.md               manual de uso
+index.html              página única
+styles.css              estilo (tema claro/escuro, celular)
+manifest.webmanifest    instalação na tela inicial do celular
+icone.svg               ícone
+server.mjs              servidor local: estado, pacotes, mídia, geração, acesso pelo celular
+src/app.js              bootstrap, roteador por hash, escolha do armazenamento, teclado global
+
+src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
+  storage.js            estado único em JSON, migração, backends (memória/localStorage)
+  idbStore.js           IndexedDB: estado e mídia no aparelho, cota, armazenamento permanente
+  serverStore.js        persistência via /api, detecção de dados órfãos
+  mediaStore.js         áudios: arquivo no servidor OU IndexedDB
+  merge.js              mesclagem de dois aparelhos sem perder histórico
+  session.js            sessão de exercício persistida (sobrevive a fechar o app)
+  xp.js                 XP idempotente, meta diária, sequência, marcos
+  skills.js             estimativa por habilidade a partir de evidências
+  schedule.js           repetição espaçada (SM-2 simplificado), leeches, fila
+  placement.js          motor do nivelamento, correção, relatório
+  assessment.js         reavaliação periódica com itens novos
+  plan.js               resultado do nivelamento → plano inicial
+  exercises.js          geração/correção de exercícios (vocab, leitura, produção, revisão, escuta, ditado)
+  flashcards.js         segmentação, pinyin, glosa, duplicatas, rascunhos
+  packs.js              ingestão do pacote diário no app
+  packValidation.js     schema do pacote gerado (roda no gerador E no app)
+  packPipeline.js       orquestração da geração (compartilhada PC/celular)
+  briefing.js           o que é enviado ao modelo (e fica auditável)
+  prompts/pack.js       prompt de sistema versionado (pack-v3)
+  llmBrowser.js         Claude API direto do navegador, streaming
+  secrets.js            chave da API, por aparelho, FORA do estado
+  ankiExport.js         TSV/CSV + histórico de exportações
+  ankiConnect.js        add-on do Anki: notas, mídia, histórico de revisões
+  activities.js         sessões e conversas reais
+  achievements.js       conquistas comprováveis
+  recommendations.js    recomendações explicáveis
+  demoData.js           dados fictícios de demonstração
+  content/lexicon.js    154 entradas + registro em tempo de execução
+  content/questions.js  26 itens do nivelamento
+  content/grammar.js    50 estruturas em ordem de progressão
+
+src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
+                        activities, history, settings, audio, recorder, geracao)
+tools/generate.js       gerador por linha de comando
+tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
+scripts/                timer systemd, semear demonstração, montar publicação
+.github/workflows/      publicação automática no GitHub Pages
+tests/                  17 arquivos, 223 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
+```
+
+---
+
+## 3. Decisões e por quê
+
+A ordem aqui é de importância, não cronológica. Cada item diz **o que foi decidido**, **por quê** e
+**o que quebraria se alguém mudar sem pensar**.
+
+### 3.1 Zero dependências, sem build
+
+O ambiente onde o projeto foi escrito **não tinha acesso ao registro npm**. Em vez de ficar
+bloqueado, o projeto virou ES modules puros, que rodam no navegador e no `node --test` sem
+transpilação. Efeito colateral bom: o app abre em qualquer máquina, e a pasta publicada tem 359 KB.
+**Se mudar:** qualquer dependência quebra o modo celular (o service worker lista arquivos locais) e
+obriga build no workflow do GitHub Pages.
+
+### 3.2 XP nunca é proficiência
+
+`xp.js` mede atividade; `skills.js` mede desempenho. Estudar 50 cartões não move habilidade nenhuma.
+Há teste explícito para isso (`skills.test.js`: 50 eventos de XP → todas as habilidades seguem
+`null`). Exigência da especificação §7.3 e a regra mais fácil de violar por acidente.
+
+### 3.3 Nada é estimado sem evidência
+
+Habilidade sem dado aparece como `nao_avaliada`; com poucos dados, `dados_insuficientes`. O nível
+geral só menciona HSK aproximado com 3+ itens respondidos na faixa. Toda pontuação carrega a fórmula
+em texto ("precisão ponderada 80% em 7 itens, dificuldade média 1,8, fator 0,76 → 61/100").
+
+### 3.4 Apoio usado reduz o peso do acerto
+
+Revelar o pinyin antes de responder é registrado (`supportUsed`) e multiplica o acerto por 0,7.
+Sem isso, o número sobe sem a pessoa melhorar.
+
+### 3.5 O validador do pacote roda duas vezes
+
+`packValidation.js` é chamado no gerador **e** de novo no app, porque `data/packs/*.json` pode ser
+editado à mão. Ele **rejeita o pacote inteiro** se o modelo mandar campo de proficiência
+(`skills`, `score`, `xp`…), exercício de produção oral, pinyin/tradução vazios, alternativas
+repetidas, resposta fora da faixa, ou escuta sem o texto a ser falado.
+**Por quê:** conteúdo gerado por LLM é dado não confiável; a fronteira é o schema.
+
+### 3.6 Loop de correção em vez de confiar na primeira resposta
+
+Quando a validação falha, o gerador devolve os erros ao modelo e pede correção (`--retries`, padrão
+1). Isso já aconteceu de verdade na primeira geração real (a regra do `any` com mais de 12 itens).
+Custo: uma chamada extra. Depois disso relaxei a regra que causou a retentativa.
+
+### 3.7 O pacote tem duas metades obrigatórias
+
+Pedido explícito do usuário: **entrada nova todo dia, sobretudo gramática, sem nunca perder de vista
+o que já viu.** O prompt tem orçamento: 10–14 palavras novas + 1 estrutura nova da fila + até 8
+palavras devidas reapresentadas **em frases diferentes** + estruturas antigas devidas reaparecendo no
+diálogo e em 2+ exercícios. Medido no pacote real: 12 novas + 8 de revisão (8/8 vindas do
+agendador), 12/12 exercícios com `targets`.
+
+### 3.8 Currículo gramatical é uma fila, não sorteio
+
+`content/grammar.js` tem 50 estruturas em ordem de dificuldade. O briefing informa as já
+apresentadas e a próxima; o modelo ensina **essa**. Se a próxima for trivial para o nível, o prompt
+manda resolvê-la em duas linhas e ensinar a seguinte — e o modelo fez exatamente isso no teste real
+(passou por `是` e explicou `的`). Há tela para marcar "já domino" e pular a fila.
+
+### 3.9 Agendador próprio em vez de depender do Anki
+
+SM-2 simplificado em `schedule.js`: passos fixos de 1 e 3 dias, depois `intervalo × facilidade`;
+erro volta a 1 dia e reduz a facilidade; 4 recaídas marcam o item como problemático (e o pacote muda
+o ângulo em vez de repetir o cartão). **Por quê:** o Anki não devolve o estado item-por-item ao
+navegador, e sem isso o briefing não sabe o que está esquecido — só o que foi errado ontem.
+O agendador decide **quando** um item volta; não é proficiência.
+
+### 3.10 Exercícios declaram o que treinam (`targets`)
+
+Cada item diz quais palavras/estruturas exercita. É assim que o agendador sabe o que foi revisado.
+Refs genéricas (nome de tema) são descartadas de propósito. Sem `targets` correto, a repetição
+espaçada para de funcionar silenciosamente.
+
+### 3.11 Sessão de exercício persistida
+
+Era o ponto mais frágil: o exercício vivia na memória da aba. Agora cada resposta vai para o estado
+e para o disco/IndexedDB. Retoma no mesmo item. **Sessão aberta não gera desempenho** — a correção
+só acontece na conclusão, então abandonar pela metade registra zero.
+
+### 3.12 Backend de geração: `claude-code` como padrão
+
+A máquina tinha o Claude Code instalado e autenticado, e **nenhuma** chave de API. `claude -p` virou
+o padrão: zero configuração, custo pela assinatura existente. O backend `api` (SDK oficial) está
+escrito segundo a documentação, mas **nunca foi executado** — sem npm nem credencial no ambiente.
+Está marcado como não testado no código, no README e aqui. O backend do navegador
+(`llmBrowser.js`) é independente e usa `fetch` direto, com testes de cabeçalho/streaming/erro.
+
+### 3.13 Chave da API fica fora do estado
+
+`secrets.js` guarda a chave em `localStorage` sob outra chave, **não** no estado do app: assim ela
+não entra no JSON exportado nem é sincronizada entre aparelhos. Decisão do usuário (ele escolheu
+chave no celular para ter autonomia); os riscos estão escritos na própria tela.
+
+### 3.14 Celular autônomo via GitHub Pages
+
+Service worker exige HTTPS ou localhost — por HTTP na rede local o navegador recusa o registro.
+Então "usar no celular sem o PC" obriga hospedagem. O app é 100% estático, então Pages resolve. A
+pasta publicada contém **apenas o app**: há teste que falha se `data/`, `server.mjs`, `tools/` ou
+`tests/` vazarem.
+
+### 3.15 Mesclagem em vez de "importar"
+
+Com dois aparelhos, importar apagaria o histórico do outro. Como quase tudo aqui só cresce, a união
+é a operação correta: eventos por `key`, registros por `id`, pacotes por data, léxico por palavra,
+agendamento item a item (fica o revisado mais recentemente), escalares pelo `updatedAt`.
+
+### 3.16 Áudio: TTS é útil, mas é declarado como TTS
+
+A escuta usa a voz do navegador e **gera evidência real** de 听力 — mas o cálculo da habilidade
+anexa o aviso: "3 de 3 evidências vêm de voz sintetizada, não de fala natural". Gravar colegas
+(`MediaRecorder`) existe justamente porque TTS não substitui gente real. Pronúncia **não** recebe
+nota: não há avaliação automática confiável aqui.
+
+### 3.17 Chave obrigatória no acesso pela rede local
+
+Fora do loopback (`HOST=0.0.0.0`), toda requisição — inclusive a página — exige chave, gerada em
+`data/lan-token.txt` (permissão 600) e guardada em cookie. Numa Wi-Fi compartilhada, sem isso
+qualquer um leria e alteraria o progresso.
+
+### 3.18 Falha nunca é reportada como sucesso
+
+Envio ao AnkiConnect que falhou é registrado como erro, com o estágio; o cartão continua "aprovado",
+não "exportado". Mídia que não subiu impede a nota de prometer áudio. Histórico de revisões do Anki
+aparece como "indisponível" se o add-on não expõe a ação.
+
+---
+
+## 4. Histórico: o que foi feito em cada rodada
+
+| Rodada | Entrega | Motivo |
+|---|---|---|
+| 1 | Fase 1 completa da especificação: onboarding, nivelamento, painel, XP, flashcards, exportação, histórico, configurações (105 testes) | cumprir `CLAUDE.md` §15 |
+| 2 | Análise crítica para intensivo | o usuário pediu avaliação, não código |
+| 3 | Pipeline de LLM: servidor local, gerador, schema, ingestão, timer, léxico que cresce (136 testes) | furo nº 1 e nº 2 da análise: conteúdo fixo e léxico de 154 palavras |
+| 4 | Agendador SM-2, currículo de 50 estruturas, prompt v2 com orçamento novo/revisão (158 → 193) | pedido: material novo todo dia sem esquecer o antigo |
+| 5 | Áudio (TTS, ditado, gravação, mídia no Anki), sessão persistida, teclado, aprovação em massa, reavaliação semanal, leitura do Anki, import JSON (193 → 202) | pedido: "faça tudo, especialmente salvar progresso se eu parar" |
+| 6 | Rede local com chave, manifesto, CSS de celular, resgate de dados órfãos (202 → 210) | pergunta: "dá para usar no celular?" |
+| 7 | IndexedDB, service worker, Claude API no navegador, mesclagem, publicação no Pages (210 → 223) | pedido: celular **sem** o PC ligado |
+
+---
+
+## 5. O que falta
+
+Em ordem de valor para um intensivo. Cada item tem contexto suficiente para começar sem reler nada.
+
+### 5.1 O agendador ignora o que você revisa dentro do Anki
+O painel já consegue **ler** quantas revisões você fez (`ankiConnect.reviewStats`), mas o agendador
+não usa esse dado. Então um cartão revisado no Anki continua aparecendo como devido aqui.
+**Caminho:** mapear nota do Anki → `ref` do agendador (provavelmente pela frente do cartão) e, ao ler
+o histórico, empurrar o `due` dos itens correspondentes. Cuidado: não inventar `reps`/`ease` a
+partir de dados que o add-on não dá.
+
+### 5.2 Currículo gramatical acaba em 50 pontos
+Cobre até perto de HSK 3. Para um intensivo longo, faltam estruturas de HSK 4+. Acrescentar em
+`content/grammar.js` mantendo a ordem de dificuldade (a fila é a ordem do array).
+
+### 5.3 Léxico base ainda é pequeno
+154 entradas escritas à mão + o que os pacotes acrescentam. Para mineração de texto real, o ideal
+seria importar CC-DICT/CC-CEDICT (~120 mil entradas) para IndexedDB e consultar de lá.
+**Por que não foi feito:** sem rede no ambiente de desenvolvimento para baixar o dicionário.
+`content/lexicon.js` já tem registro em tempo de execução (`registerEntries`), então o caminho está
+aberto: basta uma função que carregue o dicionário e registre em lote.
+
+### 5.4 Backend `api` (SDK oficial) nunca executado
+`tools/backends/api.js` segue a documentação mas nunca rodou. Antes de confiar: `npm install
+@anthropic-ai/sdk`, rodar com `--dry-run`, depois de verdade. O caminho do navegador
+(`llmBrowser.js`) é o que foi testado de fato.
+
+### 5.5 Sem avaliação de pronúncia
+Gravar a própria voz e comparar com o TTS existe como ideia, não como código. Reconhecimento de fala
+para julgar tom dá falso positivo e negativo demais para virar nota — se for feito, que seja como
+autoavaliação assistida, nunca como pontuação automática.
+
+### 5.6 Mesclagem não tem desfazer
+Resolve conflito por regra fixa e relata o que fez, mas não guarda versão anterior. Exportar antes é
+a recomendação atual. Um "desfazer última mesclagem" seria barato (guardar o estado anterior em
+IndexedDB sob outra chave).
+
+### 5.7 Relatórios semanais automáticos (Fase 2 da especificação)
+O histórico mostra tudo, mas ninguém resume. Um resumo semanal ("você consolidou 23 itens, 4 viraram
+problemáticos, o tema futebol caiu de 60% para 30% de erro") seria útil e usaria só dados que já
+existem.
+
+### 5.8 Detecção de duplicata contra o Anki de verdade
+Hoje a duplicata é detectada contra os cartões **deste app**. `ankiConnect.findDuplicates` existe,
+mas não está ligado ao fluxo de aprovação.
+
+### 5.9 Testes de interface usam um DOM próprio
+`tests/helpers/dom-shim.js` é um DOM mínimo escrito à mão, não um navegador. Pega erro de render e de
+fluxo, não pega problema de CSS, foco, rolagem ou toque. Validação visual real ainda é manual.
+
+---
+
+## 6. Armadilhas que já custaram tempo
+
+Registradas para ninguém cair de novo.
+
+1. **O repositório git é `/home/lucas`, não o projeto.** Sem commits, com `.ssh`, `.aws` e `.gnupg`
+   dentro. `git add -A` dali comitaria a pasta pessoal inteira. O projeto tem repositório próprio
+   (`git init` feito na pasta do projeto). **Nunca** rodar git na raiz do home esperando o projeto.
+2. **Node 18 nesta máquina dá segfault** em `buildDemoState()` seguido de `import()` dinâmico no mesmo
+   one-liner. Os caminhos reais (imports estáticos) não têm problema; é quirk de script improvisado.
+   Se acontecer, mover o código para um arquivo com imports no topo (`scripts/semear-demo.mjs`).
+3. **`maxEntryLen()` é função, não constante.** O léxico cresce em tempo de execução; quem importar
+   um valor fixo vai segmentar errado as palavras novas.
+4. **`resetRegistry()` nos testes.** Qualquer teste que registre vocabulário precisa de
+   `t.after(resetRegistry)`, senão contamina os seguintes (o registro é módulo-global).
+5. **`speakButton` usa o helper `h()`.** Montar elemento à mão com `textContent` quebrou o DOM dos
+   testes e, de quebra, saiu do padrão da base.
+6. **`autoPlay` precisa de chave por item.** Sem `autoKey`, o áudio toca de novo a cada redesenho.
+7. **`trim()` em TSV come a coluna vazia final.** Teste de exportação deve comparar por coluna, não
+   pelo fim da linha.
+8. **`DATA_DIR` reabriu um furo de segurança:** com os dados em outro lugar, a pasta `data/` do
+   projeto voltou a ser servida como estática, incluindo a chave da rede local. Hoje há lista de
+   diretórios privados e teste cobrindo.
+9. **Rede de celular cai.** Toda chamada de rede precisa devolver `{ok:false, error}` em vez de
+   lançar exceção: já quebrou no `mediaStore`.
+10. **Service worker não registra em HTTP simples.** Por isso o modo offline exige HTTPS (Pages).
+
+---
+
+## 7. Convenções do código
+
+- **Português** em nomes de função nova, comentários, interface e mensagens de erro. O código mais
+  antigo (núcleo da Fase 1) tem nomes em inglês; não vale reescrever só por consistência.
+- **Comentário explica o porquê**, não o quê. Decisão de projeto merece comentário; laço não.
+- **Lógica pura em `src/core`** (sem DOM), interface em `src/ui`. O que entra no núcleo precisa de
+  teste em `node --test`.
+- **Testes descrevem comportamento em português** ("fechar o app no meio do exercício não perde as
+  respostas"), e testam a regra, não a implementação.
+- **Toda estimativa carrega a explicação em texto.** Se um número aparecer na tela sem poder
+  justificar-se, está errado por construção.

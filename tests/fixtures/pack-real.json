@@ -1,0 +1,904 @@
+{
+  "version": 1,
+  "date": "2026-10-16",
+  "focus": {
+    "reason": "Hoje há 19 itens de revisão vencidos, a maioria de futebol, tema que concentra 8 dos seus erros recentes. Na gramática, 是 (A 是 B, com negativo 不是) é básico para o seu nível. Por isso ele aparece só em dois exercícios, e o ponto explicado hoje é 的 (posse). A frase que faltou na última conversa — dizer com que frequência você joga — virou exercício de produção.",
+    "tags": [
+      "futebol",
+      "conversa",
+      "gramatica",
+      "dialogo"
+    ],
+    "level": 2
+  },
+  "vocab": [
+    {
+      "hz": "球员",
+      "py": "qiúyuán",
+      "pt": "jogador",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "他是很好的球员。",
+        "py": "Tā shì hěn hǎo de qiúyuán.",
+        "pt": "Ele é um ótimo jogador."
+      }
+    },
+    {
+      "hz": "教练",
+      "py": "jiàoliàn",
+      "pt": "técnico, treinador",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "我们的教练是中国人。",
+        "py": "Wǒmen de jiàoliàn shì Zhōngguó rén.",
+        "pt": "Nosso técnico é chinês."
+      }
+    },
+    {
+      "hz": "队长",
+      "py": "duìzhǎng",
+      "pt": "capitão do time",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "谁是队长？",
+        "py": "Shéi shì duìzhǎng?",
+        "pt": "Quem é o capitão?"
+      }
+    },
+    {
+      "hz": "号",
+      "py": "hào",
+      "pt": "número (da camisa)",
+      "level": 1,
+      "tags": [
+        "futebol",
+        "conversa"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "你是几号？",
+        "py": "Nǐ shì jǐ hào?",
+        "pt": "Qual é o seu número?"
+      }
+    },
+    {
+      "hz": "位置",
+      "py": "wèizhì",
+      "pt": "posição",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "你踢什么位置？",
+        "py": "Nǐ tī shénme wèizhì?",
+        "pt": "Em que posição você joga?"
+      }
+    },
+    {
+      "hz": "左边",
+      "py": "zuǒbian",
+      "pt": "lado esquerdo, à esquerda",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "球在你左边！",
+        "py": "Qiú zài nǐ zuǒbian!",
+        "pt": "A bola tá na sua esquerda!"
+      }
+    },
+    {
+      "hz": "右边",
+      "py": "yòubian",
+      "pt": "lado direito, à direita",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "我在右边，传给我！",
+        "py": "Wǒ zài yòubian, chuán gěi wǒ!",
+        "pt": "Tô na direita, passa pra mim!"
+      }
+    },
+    {
+      "hz": "防守",
+      "py": "fángshǒu",
+      "pt": "defender, marcar",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "快回来防守！",
+        "py": "Kuài huílai fángshǒu!",
+        "pt": "Volta rápido pra marcar!"
+      }
+    },
+    {
+      "hz": "厉害",
+      "py": "lìhai",
+      "pt": "fera, mandou bem, impressionante",
+      "level": 2,
+      "tags": [
+        "conversa",
+        "expressao"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "你的射门太厉害了！",
+        "py": "Nǐ de shèmén tài lìhai le!",
+        "pt": "Que chute absurdo o seu!"
+      }
+    },
+    {
+      "hz": "水",
+      "py": "shuǐ",
+      "pt": "água",
+      "level": 1,
+      "tags": [
+        "conversa",
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "休息一下，喝点水吧。",
+        "py": "Xiūxi yíxià, hē diǎn shuǐ ba.",
+        "pt": "Dá uma pausa e bebe uma água."
+      }
+    },
+    {
+      "hz": "跑",
+      "py": "pǎo",
+      "pt": "correr",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "热身的时候，我们先跑十分钟。",
+        "py": "Rèshēn de shíhou, wǒmen xiān pǎo shí fēnzhōng.",
+        "pt": "No aquecimento, a gente corre dez minutos primeiro."
+      }
+    },
+    {
+      "hz": "有空",
+      "py": "yǒu kòng",
+      "pt": "estar livre, ter tempo",
+      "level": 2,
+      "tags": [
+        "conversa"
+      ],
+      "status": "novo",
+      "example": {
+        "hz": "你周末有空吗？一起踢球吧！",
+        "py": "Nǐ zhōumò yǒu kòng ma? Yìqǐ tī qiú ba!",
+        "pt": "Tá livre no fim de semana? Bora jogar bola!"
+      }
+    },
+    {
+      "hz": "比赛",
+      "py": "bǐsài",
+      "pt": "partida, jogo",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "这场比赛我们赢了！",
+        "py": "Zhè chǎng bǐsài wǒmen yíng le!",
+        "pt": "Ganhamos esse jogo!"
+      }
+    },
+    {
+      "hz": "红牌",
+      "py": "hóngpái",
+      "pt": "cartão vermelho",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "他犯规太多，裁判给了他红牌。",
+        "py": "Tā fànguī tài duō, cáipàn gěi le tā hóngpái.",
+        "pt": "Ele fez falta demais e o juiz deu vermelho pra ele."
+      }
+    },
+    {
+      "hz": "走吧",
+      "py": "zǒu ba",
+      "pt": "vamos, bora",
+      "level": 1,
+      "tags": [
+        "conversa",
+        "expressao"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "八点了，走吧！",
+        "py": "Bā diǎn le, zǒu ba!",
+        "pt": "Já são oito horas, bora!"
+      }
+    },
+    {
+      "hz": "中场",
+      "py": "zhōngchǎng",
+      "pt": "meio-campo",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "我们的中场很厉害。",
+        "py": "Wǒmen de zhōngchǎng hěn lìhai.",
+        "pt": "Nosso meio-campo é muito bom."
+      }
+    },
+    {
+      "hz": "裁判",
+      "py": "cáipàn",
+      "pt": "juiz, árbitro",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "裁判，那不是犯规！",
+        "py": "Cáipàn, nà bú shì fànguī!",
+        "pt": "Juiz, isso não foi falta!"
+      }
+    },
+    {
+      "hz": "我来",
+      "py": "wǒ lái",
+      "pt": "deixa comigo",
+      "level": 1,
+      "tags": [
+        "futebol",
+        "expressao"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "谁踢点球？——我来！",
+        "py": "Shéi tī diǎnqiú? — Wǒ lái!",
+        "pt": "Quem bate o pênalti? — Deixa comigo!"
+      }
+    },
+    {
+      "hz": "训练",
+      "py": "xùnliàn",
+      "pt": "treinar, treino",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "我们星期三晚上训练。",
+        "py": "Wǒmen xīngqīsān wǎnshang xùnliàn.",
+        "pt": "A gente treina na quarta à noite."
+      }
+    },
+    {
+      "hz": "比分",
+      "py": "bǐfēn",
+      "pt": "placar",
+      "level": 2,
+      "tags": [
+        "futebol"
+      ],
+      "status": "revisao",
+      "example": {
+        "hz": "现在比分是几比几？",
+        "py": "Xiànzài bǐfēn shì jǐ bǐ jǐ?",
+        "pt": "Quanto tá o jogo agora?"
+      }
+    }
+  ],
+  "dialogue": {
+    "title": "Depois do treino",
+    "context": "No fim de um treino, na beira do campo, o capitão do time (A) conversa com Lucas (B).",
+    "lines": [
+      {
+        "speaker": "A",
+        "hz": "你今天很厉害！你是前锋吗？",
+        "py": "Nǐ jīntiān hěn lìhai! Nǐ shì qiánfēng ma?",
+        "pt": "Você mandou muito bem hoje! Você é atacante?"
+      },
+      {
+        "speaker": "B",
+        "hz": "不是，我是中场。我的号是八号。",
+        "py": "Bú shì, wǒ shì zhōngchǎng. Wǒ de hào shì bā hào.",
+        "pt": "Não, sou meio-campo. Meu número é o 8."
+      },
+      {
+        "speaker": "A",
+        "hz": "你一个星期踢几次？",
+        "py": "Nǐ yí ge xīngqī tī jǐ cì?",
+        "pt": "Quantas vezes por semana você joga?"
+      },
+      {
+        "speaker": "B",
+        "hz": "我每周踢两次，有时候三次。你呢？",
+        "py": "Wǒ měi zhōu tī liǎng cì, yǒu shíhou sān cì. Nǐ ne?",
+        "pt": "Jogo duas vezes por semana, às vezes três. E você?"
+      },
+      {
+        "speaker": "A",
+        "hz": "我是队长，我每天都训练。",
+        "py": "Wǒ shì duìzhǎng, wǒ měi tiān dōu xùnliàn.",
+        "pt": "Eu sou o capitão, treino todo dia."
+      },
+      {
+        "speaker": "B",
+        "hz": "周六的比赛，裁判是谁？",
+        "py": "Zhōuliù de bǐsài, cáipàn shì shéi?",
+        "pt": "E no jogo de sábado, quem vai apitar?"
+      },
+      {
+        "speaker": "A",
+        "hz": "还是上次的裁判。",
+        "py": "Háishi shàng cì de cáipàn.",
+        "pt": "O mesmo juiz da última vez."
+      },
+      {
+        "speaker": "B",
+        "hz": "啊！上次他给了我红牌！比分也不好，一比三。",
+        "py": "À! Shàng cì tā gěi le wǒ hóngpái! Bǐfēn yě bù hǎo, yī bǐ sān.",
+        "pt": "Ah, não! Da última vez ele me deu vermelho! E o placar foi ruim, 1 a 3."
+      },
+      {
+        "speaker": "A",
+        "hz": "哈哈，这次你在左边防守，小心一点儿。",
+        "py": "Hāha, zhè cì nǐ zài zuǒbian fángshǒu, xiǎoxīn yìdiǎnr.",
+        "pt": "Haha, dessa vez você marca pela esquerda. Vai com calma."
+      },
+      {
+        "speaker": "B",
+        "hz": "没问题，我来！有水吗？",
+        "py": "Méi wèntí, wǒ lái! Yǒu shuǐ ma?",
+        "pt": "Tranquilo, deixa comigo! Tem água?"
+      },
+      {
+        "speaker": "A",
+        "hz": "有，给你。走吧，我们一起去吃饭！",
+        "py": "Yǒu, gěi nǐ. Zǒu ba, wǒmen yìqǐ qù chī fàn!",
+        "pt": "Tem, toma. Bora, vamos comer juntos!"
+      }
+    ],
+    "questions": [
+      {
+        "prompt": "Em que posição Lucas (B) joga?",
+        "options": [
+          "Meio-campo",
+          "Atacante",
+          "Goleiro",
+          "Zagueiro"
+        ],
+        "answer": 0,
+        "rationale": "Ele diz 不是，我是中场 — nega que seja atacante e diz que é meio-campo."
+      },
+      {
+        "prompt": "Com que frequência B joga?",
+        "options": [
+          "Duas vezes por semana, às vezes três",
+          "Todos os dias",
+          "Uma vez por semana",
+          "Três vezes por semana, às vezes quatro"
+        ],
+        "answer": 0,
+        "rationale": "我每周踢两次，有时候三次: duas vezes por semana, às vezes três. Quem treina todo dia (每天) é o capitão."
+      },
+      {
+        "prompt": "Por que B se preocupa com o juiz de sábado?",
+        "options": [
+          "Esse juiz deu cartão vermelho para ele da última vez",
+          "O juiz é o capitão do outro time",
+          "O juiz não vai aparecer",
+          "O juiz é o técnico do time"
+        ],
+        "answer": 0,
+        "rationale": "还是上次的裁判 (o mesmo da última vez) + 上次他给了我红牌 (da última vez ele me deu vermelho)."
+      }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "mc",
+      "skill": "vocabulary",
+      "difficulty": 1,
+      "tags": [
+        "conversa",
+        "expressao"
+      ],
+      "targets": [
+        "厉害"
+      ],
+      "prompt": "Depois de um golaço seu, um colega diz a frase abaixo. O que ele quis dizer?",
+      "promptHz": "你今天很厉害！",
+      "options": [
+        "Você mandou muito bem hoje!",
+        "Você está cansado hoje!",
+        "Você chegou atrasado hoje!",
+        "Você se machucou hoje!"
+      ],
+      "answer": 0,
+      "rationale": "厉害 é elogio: alguém fera, que impressiona. Cansado seria 累 e machucado, 受伤."
+    },
+    {
+      "type": "mc",
+      "skill": "reading",
+      "difficulty": 2,
+      "tags": [
+        "futebol"
+      ],
+      "targets": [
+        "教练",
+        "左边",
+        "防守"
+      ],
+      "prompt": "O que o técnico pediu?",
+      "promptHz": "教练：你在左边防守。",
+      "options": [
+        "Que você marque pelo lado esquerdo",
+        "Que você ataque pela direita",
+        "Que você seja o capitão",
+        "Que você descanse no banco"
+      ],
+      "answer": 0,
+      "rationale": "在左边 = no lado esquerdo; 防守 = defender, marcar. Direita seria 右边."
+    },
+    {
+      "type": "cloze",
+      "skill": "grammar",
+      "difficulty": 1,
+      "tags": [
+        "gramatica",
+        "futebol"
+      ],
+      "targets": [
+        "gram:de-posse",
+        "教练"
+      ],
+      "prompt": "Complete para dizer: 'Ele é o técnico do nosso time.'",
+      "promptHz": "他是我们队___教练。",
+      "options": [
+        "的",
+        "是",
+        "了",
+        "吗"
+      ],
+      "answer": 0,
+      "rationale": "O dono vem antes, depois 的 e depois a coisa: 我们队的教练 = 'o técnico do nosso time'. A ordem é a contrária do português."
+    },
+    {
+      "type": "cloze",
+      "skill": "grammar",
+      "difficulty": 1,
+      "tags": [
+        "gramatica",
+        "futebol"
+      ],
+      "targets": [
+        "gram:shi-a-b",
+        "裁判",
+        "球员"
+      ],
+      "prompt": "Complete: 'Ele é o juiz, não é jogador.'",
+      "promptHz": "他___裁判，___球员。",
+      "options": [
+        "是 / 不是",
+        "有 / 没有",
+        "在 / 不在",
+        "是 / 没是"
+      ],
+      "answer": 0,
+      "rationale": "Para dizer o que alguém é, use 是. A negação de 是 é sempre 不是; 没是 não existe."
+    },
+    {
+      "type": "mc",
+      "skill": "reading",
+      "difficulty": 2,
+      "tags": [
+        "futebol",
+        "tempo"
+      ],
+      "targets": [
+        "比赛",
+        "gram:de-posse"
+      ],
+      "prompt": "Um colega te manda esta mensagem. O que ele está perguntando?",
+      "promptHz": "明天的比赛几点？",
+      "options": [
+        "A que horas é o jogo de amanhã?",
+        "Onde é o treino de amanhã?",
+        "Quem ganhou o jogo de ontem?",
+        "Quantos jogadores tem o time?"
+      ],
+      "answer": 0,
+      "rationale": "明天的比赛 = o jogo de amanhã (的 liga 'amanhã' a 'jogo'); 几点 = a que horas."
+    },
+    {
+      "type": "mc",
+      "skill": "reading",
+      "difficulty": 2,
+      "tags": [
+        "futebol"
+      ],
+      "targets": [
+        "红牌",
+        "裁判"
+      ],
+      "prompt": "O que aconteceu com ele?",
+      "promptHz": "裁判给了他红牌，他不能踢了。",
+      "options": [
+        "O juiz deu cartão vermelho e ele não pode mais jogar",
+        "Levou cartão amarelo e continuou em campo",
+        "Fez um gol e comemorou",
+        "Se machucou e pediu para sair"
+      ],
+      "answer": 0,
+      "rationale": "红牌 = cartão vermelho; 不能踢了 = não pode mais jogar. Amarelo seria 黄牌."
+    },
+    {
+      "type": "mc",
+      "skill": "vocabulary",
+      "difficulty": 1,
+      "tags": [
+        "conversa",
+        "expressao"
+      ],
+      "targets": [
+        "走吧"
+      ],
+      "prompt": "O jogo acabou e você quer chamar os colegas para irem embora juntos: 'Bora, vamos!'. O que você diz?",
+      "options": [
+        "走吧！",
+        "我来！",
+        "小心！",
+        "不客气！"
+      ],
+      "answer": 0,
+      "rationale": "走吧 = 'vamos, bora'. 我来 é 'deixa comigo', 小心 é 'cuidado' e 不客气 é 'de nada'."
+    },
+    {
+      "type": "cloze",
+      "skill": "vocabulary",
+      "difficulty": 2,
+      "tags": [
+        "futebol"
+      ],
+      "targets": [
+        "中场",
+        "gram:shi-a-b"
+      ],
+      "prompt": "Complete: 'Não sou atacante, sou meio-campo.'",
+      "promptHz": "我不是前锋，我是___。",
+      "options": [
+        "中场",
+        "比分",
+        "训练",
+        "红牌"
+      ],
+      "answer": 0,
+      "rationale": "中场 = meio-campo (a posição). 比分 é placar, 训练 é treino e 红牌 é cartão vermelho."
+    },
+    {
+      "type": "cloze",
+      "skill": "vocabulary",
+      "difficulty": 1,
+      "tags": [
+        "futebol",
+        "expressao"
+      ],
+      "targets": [
+        "我来",
+        "水"
+      ],
+      "prompt": "No intervalo, alguém pergunta quem vai comprar água. Você se oferece. Complete:",
+      "promptHz": "A：谁去买水？ B：___！",
+      "options": [
+        "我来",
+        "走吧",
+        "对不起",
+        "再见"
+      ],
+      "answer": 0,
+      "rationale": "我来 é 'deixa comigo / eu faço': serve para pegar a bola e também para se oferecer para uma tarefa."
+    },
+    {
+      "type": "mc",
+      "skill": "reading",
+      "difficulty": 2,
+      "tags": [
+        "futebol"
+      ],
+      "targets": [
+        "比分",
+        "训练",
+        "gram:de-posse"
+      ],
+      "prompt": "O que o colega quer saber?",
+      "promptHz": "训练以后，队友问：上次比赛的比分是多少？",
+      "options": [
+        "Qual foi o placar do último jogo",
+        "Quando é o próximo treino",
+        "Quem apitou o último jogo",
+        "Quanto custou a chuteira"
+      ],
+      "answer": 0,
+      "rationale": "上次比赛的比分 = o placar do último jogo. 训练以后 só diz quando ele perguntou: depois do treino."
+    },
+    {
+      "type": "production",
+      "skill": "writing",
+      "difficulty": 2,
+      "tags": [
+        "conversa",
+        "futebol",
+        "tempo"
+      ],
+      "targets": [
+        "每周",
+        "两次",
+        "一个星期",
+        "踢"
+      ],
+      "prompt": "Depois do jogo, um colega pergunta: 你一个星期踢几次足球？ Responda em chinês (caracteres ou pinyin) dizendo com que frequência você joga — por exemplo, duas vezes por semana.",
+      "rubric": {
+        "minLength": 5,
+        "criteria": [
+          {
+            "id": "periodo",
+            "label": "período (por semana)",
+            "any": [
+              "每周",
+              "每个星期",
+              "一个星期",
+              "mei zhou",
+              "meizhou",
+              "yi ge xingqi",
+              "yige xingqi",
+              "mei ge xingqi"
+            ]
+          },
+          {
+            "id": "vezes",
+            "label": "contagem de vezes com 次",
+            "any": [
+              "次",
+              "ci"
+            ]
+          },
+          {
+            "id": "verbo",
+            "label": "o verbo jogar (踢)",
+            "any": [
+              "踢",
+              "ti"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "production",
+      "skill": "writing",
+      "difficulty": 2,
+      "tags": [
+        "conversa",
+        "futebol",
+        "gramatica"
+      ],
+      "targets": [
+        "gram:shi-a-b",
+        "gram:de-posse",
+        "号",
+        "中场"
+      ],
+      "prompt": "Você entrou num time novo. Escreva duas frases curtas: diga que é meio-campo e qual é o seu número de camisa (use 是 e 的).",
+      "rubric": {
+        "minLength": 8,
+        "criteria": [
+          {
+            "id": "shi",
+            "label": "usa 是 para dizer o que você é",
+            "any": [
+              "是",
+              "shi"
+            ]
+          },
+          {
+            "id": "de",
+            "label": "usa 的 para posse (meu número)",
+            "any": [
+              "的",
+              "de"
+            ]
+          },
+          {
+            "id": "hao",
+            "label": "número da camisa com 号",
+            "any": [
+              "号",
+              "hao"
+            ]
+          },
+          {
+            "id": "posicao",
+            "label": "posição: meio-campo",
+            "any": [
+              "中场",
+              "zhongchang",
+              "zhong chang"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "tonePairs": [
+    {
+      "a": {
+        "hz": "是",
+        "py": "shì",
+        "pt": "ser"
+      },
+      "b": {
+        "hz": "十",
+        "py": "shí",
+        "pt": "dez"
+      },
+      "note": "Em 我是十号 aparecem os dois. 是 tem 4º tom (desce seco) e 十 tem 2º tom (sobe, como numa pergunta)."
+    },
+    {
+      "a": {
+        "hz": "水",
+        "py": "shuǐ",
+        "pt": "água"
+      },
+      "b": {
+        "hz": "睡",
+        "py": "shuì",
+        "pt": "dormir"
+      },
+      "note": "Mesmo som. Com 3º tom (desce e sobe) é água; com 4º tom (cai direto) é dormir. Pedir 水 com o tom errado vira 'dormir'."
+    },
+    {
+      "a": {
+        "hz": "号",
+        "py": "hào",
+        "pt": "número"
+      },
+      "b": {
+        "hz": "好",
+        "py": "hǎo",
+        "pt": "bom"
+      },
+      "note": "号 tem 4º tom e é o número da camisa; 好 tem 3º tom, como em 好球. Em 你几号？ o tom cai."
+    },
+    {
+      "a": {
+        "hz": "左",
+        "py": "zuǒ",
+        "pt": "esquerda"
+      },
+      "b": {
+        "hz": "走",
+        "py": "zǒu",
+        "pt": "ir, andar"
+      },
+      "note": "Os dois têm 3º tom; muda a vogal. 左 termina em 'uo' (zuô) e 走 em 'ou' (zôu). 左边 é a esquerda; 走吧 é 'bora'."
+    }
+  ],
+  "fieldPhrases": [
+    {
+      "hz": "你几号？",
+      "py": "Nǐ jǐ hào?",
+      "pt": "Qual é o seu número?",
+      "when": "na hora de montar os times ou de achar alguém em campo"
+    },
+    {
+      "hz": "你踢什么位置？",
+      "py": "Nǐ tī shénme wèizhì?",
+      "pt": "Em que posição você joga?",
+      "when": "antes do jogo, para dividir as posições"
+    },
+    {
+      "hz": "回来防守！",
+      "py": "Huílai fángshǒu!",
+      "pt": "Volta pra marcar!",
+      "when": "quando o time perde a bola e precisa recompor"
+    },
+    {
+      "hz": "左边有人！",
+      "py": "Zuǒbian yǒu rén!",
+      "pt": "Tem gente na esquerda!",
+      "when": "para avisar um colega de um adversário chegando ou de alguém livre"
+    },
+    {
+      "hz": "太厉害了！",
+      "py": "Tài lìhai le!",
+      "pt": "Que jogada absurda!",
+      "when": "depois de um drible, defesa ou gol muito bonito"
+    },
+    {
+      "hz": "喝点水吧。",
+      "py": "Hē diǎn shuǐ ba.",
+      "pt": "Bebe uma água aí.",
+      "when": "no intervalo ou numa pausa do jogo"
+    },
+    {
+      "hz": "谁是队长？",
+      "py": "Shéi shì duìzhǎng?",
+      "pt": "Quem é o capitão?",
+      "when": "no começo da partida, para tirar par ou ímpar ou falar com o juiz"
+    }
+  ],
+  "grammarNote": {
+    "pointId": "de-posse",
+    "point": "的 — posse e atributo",
+    "explanation": "O padrão é A + 的 + substantivo, em que A é o dono ou a característica. A ordem é a contrária do português: 'a chuteira do Lucas' vira 'Lucas 的 chuteira'. Pense no 的 como um ''s' do inglês. O erro típico é seguir a ordem do português e dizer 号的我 em vez de 我的号. Com família e grupos próximos o 的 costuma cair (我妈妈, 我们队), mas na dúvida use 的. Também serve para tempo e lugar: 明天的比赛 (o jogo de amanhã), 上次的裁判 (o juiz da última vez).",
+    "examples": [
+      {
+        "hz": "这是我的球鞋。",
+        "py": "Zhè shì wǒ de qiúxié.",
+        "pt": "Essa é a minha chuteira."
+      },
+      {
+        "hz": "他是我们队的教练。",
+        "py": "Tā shì wǒmen duì de jiàoliàn.",
+        "pt": "Ele é o técnico do nosso time."
+      },
+      {
+        "hz": "周六的比赛几点？",
+        "py": "Zhōuliù de bǐsài jǐ diǎn?",
+        "pt": "A que horas é o jogo de sábado?"
+      },
+      {
+        "hz": "你的号是几号？",
+        "py": "Nǐ de hào shì jǐ hào?",
+        "pt": "Qual é o seu número?"
+      }
+    ]
+  },
+  "coachNotes": [
+    "Os erros recentes se concentram no vocabulário de futebol (8 erros em 19 itens). 比赛, 红牌, 中场, 裁判, 我来 e 走吧 voltam hoje em frases novas. Tente entendê-los pelo contexto da frase, não como palavras soltas.",
+    "Para a lacuna da conversa (com que frequência você joga), você já tem todas as peças: 每周 + 踢 + 两次. Escreva a resposta do exercício de produção até ela sair sem precisar pensar.",
+    "Gramática ainda tem poucos dados. Os exercícios de 是 e 的 de hoje vão ajudar o app a medir melhor esse ponto."
+  ],
+  "provenance": {
+    "backend": "claude-code",
+    "model": "claude-code-default",
+    "promptVersion": "pack-v2",
+    "schemaVersion": 1,
+    "generatedAt": "2026-10-13T11:35:54.596Z",
+    "costUsd": 0.6113864,
+    "attempts": 1,
+    "briefingDigest": "3948d7724e79ae5d",
+    "briefingSummary": "nível hsk1_plus; 6 item(ns) errado(s) recentemente; 19 palavra(s) e 0 estrutura(s) devidas; gramática 0/50, próxima: 是 — A é B; temas fracos: futebol; 1 lacuna(s) de conversa"
+  }
+}

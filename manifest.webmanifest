@@ -1,0 +1,20 @@
+{
+  "name": "Mandarin Quest",
+  "short_name": "Mandarim",
+  "description": "Estudo adaptativo de mandarim: nivelamento, pacote diário, revisão espaçada e flashcards.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#e0484d",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

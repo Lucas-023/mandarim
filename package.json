@@ -1,0 +1,19 @@
+{
+  "name": "mandarin-quest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema pessoal de estudo adaptativo de mandarim (Fase 1 / MVP)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "serve:static": "python3 -m http.server 8000",
+    "test": "node --test tests/",
+    "generate": "node tools/generate.js",
+    "generate:dry": "node tools/generate.js --dry-run",
+    "generate:mock": "node tools/generate.js --backend=mock --force",
+    "timer:install": "bash scripts/instalar-timer.sh",
+    "timer:remove": "bash scripts/instalar-timer.sh --remover",
+    "publicar": "node scripts/preparar-publicacao.mjs",
+    "seed:demo": "node scripts/semear-demo.mjs"
+  }
+}

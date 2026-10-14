@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#e0484d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mandarim" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icone.svg" />
+  <title>Mandarin Quest</title>
+  <meta name="description" content="Sistema pessoal de estudo adaptativo de mandarim: nivelamento, plano, flashcards e progresso." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>汉</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/dashboard">
+      <span class="brand-zh">汉</span>
+      <span>Mandarin Quest</span>
+    </a>
+    <nav id="nav" class="nav" aria-label="Navegação principal"></nav>
+  </header>
+
+  <div id="banners" class="banners"></div>
+  <main id="view" class="view"></main>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <noscript>
+    <p class="banner banner-error">Este aplicativo precisa de JavaScript habilitado.</p>
+  </noscript>
+
+  <footer class="footer">
+    <p>
+      Dados salvos apenas nesta máquina: em <code>data/state.json</code> no modo servidor, ou no
+      armazenamento deste navegador no modo local. As pontuações por habilidade são estimativas
+      internas calculadas a partir das suas respostas registradas — não são certificação oficial do
+      HSK. Conteúdo gerado por modelo de linguagem é sempre marcado como tal.
+    </p>
+  </footer>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
