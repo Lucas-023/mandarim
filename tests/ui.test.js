@@ -463,3 +463,14 @@ test('configurações expõem backend, custo e o que é enviado na geração', (
   assert.match(view.textContent, /instalar-timer/);
   assert.match(view.textContent, /US\$ 0,40 a 0,90/);
 });
+
+test('no aparelho, configurações oferecem receber pacotes do computador e dizem o que vai ao GitHub', () => {
+  const ctx = makeCtx(emptyState());
+  ctx.store.mode = 'device';
+  const texto = renderSettings(ctx).textContent;
+  assert.match(texto, /Receber pacotes do computador/);
+  assert.match(texto, /repositório PRIVADO/);
+  assert.match(texto, /Histórico completo, cartões e gravações não saem/);
+  ctx.store.mode = 'server';
+  assert.doesNotMatch(renderSettings(ctx).textContent, /Receber pacotes do computador/);
+});

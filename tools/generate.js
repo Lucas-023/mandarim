@@ -25,7 +25,7 @@ import { migrate, emptyState } from '../src/core/storage.js';
 import { dayKey } from '../src/core/xp.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const BACKENDS = {
+export const BACKENDS = {
   'claude-code': () => import('./backends/claudeCode.js'),
   api: () => import('./backends/api.js'),
   mock: () => import('./backends/mock.js'),

@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-10-14. Testes: **223 passando** (`npm test`).
+> Última atualização: 2026-10-14. Testes: **239 passando** (`npm test`).
 
 ---
 
@@ -20,7 +20,7 @@ local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm in
 para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
-Tamanho atual:  núcleo 5.344 linhas · interface 3.258 · servidor/scripts 1.074 · testes 3.219
+Tamanho atual:  núcleo 5.602 linhas · interface 3.433 · servidor/scripts 1.318 · testes 3.506
 Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -29,13 +29,15 @@ Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 223 testes, ~4s, sem rede
+npm test                       # 239 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
 npm run publicar               # monta publicar/ para o GitHub Pages
 npm run seed:demo              # preenche data/state.json com dados FICTÍCIOS
 npm run timer:install          # timer do systemd: gera o pacote às 5h
+npm run caixa                  # atende os pedidos do celular (caixa postal no GitHub)
+npm run caixa:timer            # timer do systemd: confere a caixa a cada 30 min
 ```
 
 ### Repositório e publicação
@@ -57,7 +59,7 @@ conferido no ar: `data/state.json` dá 404).
 | Modo | Quando | Onde ficam os dados | Geração do pacote |
 |---|---|---|---|
 | `server` | aberto pelo PC com `npm start` | `data/state.json` | `claude -p` ou API, agendada às 5h |
-| `device` | celular / app publicado | IndexedDB do aparelho | Claude API com a chave do aparelho |
+| `device` | celular / app publicado | IndexedDB do aparelho | caixa postal (plano do Claude no PC) ou Claude API com a chave do aparelho |
 | `local` | navegador sem IndexedDB | localStorage | não |
 | `memory` | armazenamento bloqueado | nada é salvo (avisa em vermelho) | não |
 
@@ -82,6 +84,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   serverStore.js        persistência via /api, detecção de dados órfãos
   mediaStore.js         áudios: arquivo no servidor OU IndexedDB
   merge.js              mesclagem de dois aparelhos sem perder histórico
+  caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
   xp.js                 XP idempotente, meta diária, sequência, marcos
   skills.js             estimativa por habilidade a partir de evidências
@@ -109,12 +112,13 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/grammar.js    50 estruturas em ordem de progressão
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao)
+                        activities, history, settings, audio, recorder, geracao, caixa)
 tools/generate.js       gerador por linha de comando
+tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  17 arquivos, 223 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  18 arquivos, 239 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -246,6 +250,24 @@ Envio ao AnkiConnect que falhou é registrado como erro, com o estágio; o cart�
 não "exportado". Mídia que não subiu impede a nota de prometer áudio. Histórico de revisões do Anki
 aparece como "indisponível" se o add-on não expõe a ação.
 
+### 3.19 Caixa postal no GitHub em vez de Wi-Fi ou chave no celular
+
+O usuário quis gerar pelo **plano do Claude** (sem pagar API) e usa **iPhone**. A assinatura só roda
+no `claude -p` do computador, então o pacote precisa viajar PC → celular. Pela Wi-Fi não dá: o app
+publicado é HTTPS e o servidor de casa é HTTP, e o Safari bloqueia conteúdo misto sem exceção (o
+Chrome Android tem permissão de "rede local", o iOS não). Um repositório **privado** do GitHub fala
+HTTPS com CORS, funciona fora de casa e o PC já tem SSH configurado.
+- **Vai o briefing, não o estado:** é o mesmo resumo que iria ao modelo; histórico, cartões e
+  gravações não saem do aparelho. Repositório público é recusado no `testarCaixa`.
+- **Token fora do estado** (`localStorage`, chave própria), como a chave da API (§3.13).
+- **Horário absoluto no pedido (`naoAntesDe`)**: o PC está em America/Sao_Paulo e o celular na China.
+  O PC não decide o "hoje"; atende o pedido quando o horário chega (amanhã = 4h no fuso do celular)
+  e ignora pedido vencido há 36h. Por isso o timer é `*:00/30`, não "às 5h".
+- **Pacote revalidado no celular** (§3.5), e falha do PC vira `erros/DATA.json`, mostrado no
+  celular; após 3 falhas no dia o PC para.
+**Se mudar:** trocar o briefing pelo estado inteiro vaza dados privados para o GitHub; usar o fuso
+do PC gera o pacote no dia errado.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -262,6 +284,7 @@ aparece como "indisponível" se o add-on não expõe a ação.
 | 8 | Este documento, ponteiro no `CLAUDE.md`, repositório próprio do projeto e commit inicial | pedido: não gastar tokens recontando a história a cada sessão |
 | 9 | Push para `github.com/Lucas-023/mandarim` (remote `origin`, SSH) | pedido: ter o repositório chamado `mandarim` |
 | 10 | Repositório público + Pages via Actions; app no ar em `lucas-023.github.io/mandarim` | pedido: usar no celular |
+| 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 239) | pedido: não pagar API, iPhone |
 
 ---
 
@@ -315,6 +338,12 @@ mas não está ligado ao fluxo de aprovação.
 `tests/helpers/dom-shim.js` é um DOM mínimo escrito à mão, não um navegador. Pega erro de render e de
 fluxo, não pega problema de CSS, foco, rolagem ou toque. Validação visual real ainda é manual.
 
+### 5.10 Caixa postal ainda não rodou contra o GitHub de verdade
+`tests/caixaPostal.test.js` cobre a lógica com um GitHub falso (regras de sha, 404, rede caindo) e
+o lado do PC com repositório git real local. A API de conteúdo do GitHub, o CORS no Safari do iPhone
+e o token fine-grained só serão confirmados na primeira configuração real. Se algo divergir, o
+ponto de mexer é `clienteGitHub` em `src/core/caixaPostal.js`.
+
 ---
 
 ## 6. Armadilhas que já custaram tempo
@@ -347,6 +376,14 @@ Registradas para ninguém cair de novo.
 11. **Os primeiros runs do Pages falham em `configure-pages`** se o push vier antes de ligar o Pages
     (e repositório privado em conta gratuita não tem Pages). Depois de ligar: aba **Actions** do
     repositório (não Settings → Actions) → workflow → *Run workflow*.
+12. **Onboarding obrigatório escondia as Configurações.** O roteador mandava toda tela de volta ao
+    onboarding; no celular novo não dava para colar chave nem restaurar backup. Hoje `settings` é
+    exceção em `render()` (`src/app.js`).
+13. **O PC e o celular estão em fusos diferentes** (America/Sao_Paulo × China, 11h). Qualquer lógica
+    de "hoje" que rode no PC para o celular usa o relógio errado — ver §3.19.
+14. **Atualização no celular leva duas aberturas.** O service worker serve do cache e baixa em
+    segundo plano: a versão nova só aparece ao fechar e abrir de novo.
+15. **`h()` ignora atributo com valor `false`.** Para `spellcheck="false"` passe a string `'false'`.
 
 ---
 

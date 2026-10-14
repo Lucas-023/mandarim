@@ -13,6 +13,9 @@
     "generate:mock": "node tools/generate.js --backend=mock --force",
     "timer:install": "bash scripts/instalar-timer.sh",
     "timer:remove": "bash scripts/instalar-timer.sh --remover",
+    "caixa": "node tools/caixaPostal.js",
+    "caixa:timer": "bash scripts/instalar-timer.sh --caixa",
+    "caixa:timer:remove": "bash scripts/instalar-timer.sh --caixa --remover",
     "publicar": "node scripts/preparar-publicacao.mjs",
     "seed:demo": "node scripts/semear-demo.mjs"
   }

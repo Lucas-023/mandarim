@@ -11,6 +11,7 @@ import { lerChaveApi, gravarChaveApi, mascararChave } from '../core/secrets.js';
 import { verificarChave, MODELO_PADRAO } from '../core/llmBrowser.js';
 import { espacoEmDisco, pedirArmazenamentoPersistente } from '../core/idbStore.js';
 import { gerarNoAparelho } from './geracao.js';
+import { cartaoCaixa } from './caixa.js';
 
 export function renderSettings(ctx) {
   const { state, commit } = ctx;
@@ -189,6 +190,9 @@ export function renderSettings(ctx) {
       'uso da sua assinatura do Claude Code. Rode `node tools/generate.js --dry-run` para ver o prompt ' +
       'exato sem gastar nada.'),
   ));
+
+  // --- Pacotes vindos do computador (plano do Claude), sem chave no aparelho ---
+  if (ctx.store.mode !== 'server') wrap.append(cartaoCaixa(ctx));
 
   // --- Geração no próprio aparelho ---
   const chaveAtual = lerChaveApi();

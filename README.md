@@ -36,14 +36,14 @@ O servidor escuta apenas em `127.0.0.1` e não expõe nada na rede (veja abaixo 
 npm test     # node --test tests/   (Node 18+)
 ```
 
-223 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
+239 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
 exportação para o Anki, exercícios, recomendações, o pipeline de LLM (validação do pacote, briefing,
 ingestão, gerador por linha de comando), a repetição espaçada (intervalos, recaídas, leeches, fila de
 revisão), o currículo gramatical, a sessão persistida (inclusive o ciclo de salvar e recarregar no
 meio do exercício), o áudio (voz, escuta, ditado, gravação, envio de mídia ao Anki), a reavaliação
 periódica, o servidor (persistência após `SIGKILL`, backups, chave da rede local, mídia, travessia de
 caminho, manifesto do celular), a chamada direta à Claude API pelo navegador (cabeçalhos, streaming,
-erros por situação, custo), a mesclagem de aparelhos, a pasta de publicação e a renderização de
+erros por situação, custo), a caixa postal celular ↔ computador pelo GitHub, a mesclagem de aparelhos, a pasta de publicação e a renderização de
 todas as telas.
 
 ## O que está implementado (Fase 1)
@@ -81,6 +81,7 @@ todas as telas.
 | Uso no celular pela rede local, com chave de acesso | ✅ |
 | Celular autônomo: app publicado, offline, dados no aparelho (IndexedDB) | ✅ |
 | Geração do pacote pelo próprio celular, com chave da Claude API no aparelho | ✅ |
+| Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
 | Service worker para funcionar em modo avião | ✅ |
 | Mesclagem de dois aparelhos sem perder histórico | ✅ |
 | Léxico que cresce a cada pacote (segmentação e pinyin melhoram sozinhos) | ✅ |
@@ -286,6 +287,48 @@ app diz tudo isso na própria tela antes de você colar a chave.
 Custo: cada pacote gasta alguns centavos de dólar pela Claude API com o modelo padrão
 (`claude-opus-5-5`) — menos do que pela assinatura do Claude Code, porque aqui não há o prompt de
 sistema dele. O valor real de cada geração aparece na procedência do pacote.
+
+### A2) Celular sem chave de API: o computador gera pelo plano do Claude
+
+Mesmo arranjo A (app publicado, dados no aparelho), mas o pacote do dia é gerado **no computador**,
+pelo `claude -p` da sua assinatura, e chega ao celular por um **repositório privado do GitHub** que
+funciona como caixa postal. Sem custo de API, e funciona fora de casa.
+
+```
+celular ──▶ pedidos/AAAA-MM-DD.json  (o briefing, o mesmo resumo que iria ao modelo)
+computador (a cada 30 min) gera e valida ──▶ pacotes/AAAA-MM-DD.json ──▶ celular revalida e carrega
+```
+
+Por que não pela Wi-Fi: o app publicado é HTTPS e o servidor de casa é HTTP; o Safari bloqueia essa
+mistura sem exceção. O GitHub fala HTTPS. O que vai ao GitHub é só o briefing — histórico completo,
+cartões e gravações não saem do aparelho.
+
+Uma vez só:
+
+1. **Crie um repositório privado** no GitHub (ex.: `mandarim-dados`), marcando *Add a README*.
+2. **Crie um token** em GitHub → Settings → Developer settings → Personal access tokens →
+   **Fine-grained tokens** → *Generate new token*: *Repository access: Only select repositories* →
+   `mandarim-dados`; *Permissions → Repository permissions → Contents: Read and write*. Copie o token.
+3. **No computador:**
+   ```bash
+   npm run caixa -- --repo=git@github.com:SEU-USUARIO/mandarim-dados.git   # clona em data/caixa/
+   npm run caixa:timer                                                     # confere a cada 30 min
+   loginctl enable-linger $USER     # para o timer rodar mesmo sem você logado
+   ```
+4. **No celular**, dentro do app instalado: Configurações → **Receber pacotes do computador** → repositório
+   `SEU-USUARIO/mandarim-dados` e o token → *Guardar e testar*. Repositório público é recusado.
+
+Daí em diante: ao abrir o app, o celular busca pacotes novos e deixa o pedido do dia seguinte
+marcado para as 4h **no fuso do celular** (o computador pode estar em outro fuso: quem manda é o
+horário gravado no pedido). Se você abrir o app sem pacote do dia, ele pede na hora, e o computador
+atende em até 30 min. Se a geração falhar, o aviso aparece no celular; depois de 3 falhas no mesmo
+dia o computador para de tentar.
+
+Comandos úteis: `npm run caixa` (atender agora), `npm run caixa -- --backend=mock` (testar sem gastar
+o plano), `journalctl --user -u mandarin-quest-caixa.service -n 50` (log), `npm run caixa:timer:remove`.
+
+**Limite honesto:** o computador precisa estar ligado e com internet para gerar. Desligado, o celular
+continua funcionando com o que já baixou, e a revisão espaçada não depende de pacote novo.
 
 ### B) Celular como tela do computador (rede local)
 

@@ -6,6 +6,7 @@ import { GRAMMAR_SYLLABUS, grammarProgress, grammarPoint } from '../core/content
 import { speakButton, canSpeak, playAudio } from './audio.js';
 import { requestGeneration } from '../core/serverStore.js';
 import { podeGerarNoAparelho, gerarNoAparelho } from './geracao.js';
+import { caixaConfigurada, sincronizarCaixa } from './caixa.js';
 import { temChaveApi } from '../core/secrets.js';
 import { dayKey } from '../core/xp.js';
 
@@ -179,11 +180,20 @@ function renderEmpty(ctx) {
       'O que é enviado ao modelo: nível estimado, habilidades, itens que você errou, temas fracos, ' +
       'o texto do campo "o que não consegui dizer" das conversas e a lista de palavras já conhecidas. ' +
       'Nome e histórico completo não são enviados. Cada briefing fica salvo em data/outbox/ para você conferir.'),
-    local && !podeAqui
+    local && caixaConfigurada()
+      ? h('div', { class: 'callout' },
+          h('strong', {}, 'O pacote vem do computador. '),
+          'Este aparelho já enviou o pedido; o computador gera na próxima rodada (às 5h, e a cada 30 min ',
+          'até as 23h) e o pacote aparece aqui sozinho. ',
+          h('div', { class: 'actions' },
+            button('Sincronizar agora', () => sincronizarCaixa(ctx), { kind: 'secondary' }),
+            podeAqui ? renderGenerateButton(ctx, { force: false }) : null))
+      : local && !podeAqui
       ? h('div', { class: 'callout' },
           h('strong', {}, 'Sem servidor e sem chave neste aparelho. '),
-          'Há dois caminhos: rodar ', h('code', {}, 'npm start'),
-          ' no computador, ou guardar uma chave da Claude API neste aparelho para ele gerar sozinho ',
+          'Há três caminhos: rodar ', h('code', {}, 'npm start'),
+          ' no computador, receber os pacotes do computador pelo GitHub (Configurações → Receber pacotes ',
+          'do computador, sem custo extra), ou guardar uma chave da Claude API neste aparelho ',
           '(Configurações → Gerar neste aparelho).')
       : h('div', { class: 'actions' },
           renderGenerateButton(ctx, { force: false }),

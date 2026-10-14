@@ -22,6 +22,7 @@ import { renderActivities } from './ui/activities.js';
 import { renderHistory } from './ui/history.js';
 import { renderSettings } from './ui/settings.js';
 import { renderPack } from './ui/pack.js';
+import { sincronizarCaixa } from './ui/caixa.js';
 
 const VIEWS = {
   dashboard: { label: 'Painel', render: renderDashboard },
@@ -364,5 +365,10 @@ async function registrarServiceWorker() {
   current = parseHash();
   render();
   syncTodayPack();
+  sincronizarCaixa(ctx(), { automatico: true });
+  // No iPhone o app instalado volta do fundo sem recarregar: sincroniza ao reaparecer.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') sincronizarCaixa(ctx(), { automatico: true });
+  });
   registrarServiceWorker();
 })();
