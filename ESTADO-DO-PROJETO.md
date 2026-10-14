@@ -41,15 +41,12 @@ npm run timer:install          # timer do systemd: gera o pacote às 5h
 ### Repositório e publicação
 
 O projeto tem **repositório git próprio**, na própria pasta (`git init` feito em 2026-10-14, commit
-inicial `19b4884`, 84 arquivos). Não há remote configurado ainda: publicar exige criar o repositório
-no GitHub (sugestão de nome: `mandarim`) e dar push.
+inicial `19b4884`, 84 arquivos), publicado em **`git@github.com:Lucas-023/mandarim.git`** (remote
+`origin`, branch `main`, push feito em 2026-10-14 no commit `635c2ca`). Autenticação por **SSH**
+(`~/.ssh/id_ed25519`, já registrada no GitHub); o `gh` CLI não está instalado. Para publicar mudanças
+basta `git push`.
 
-```bash
-git remote add origin git@github.com:<usuário>/mandarim.git   # ou https://
-git push -u origin main
-```
-
-Depois, no GitHub: **Settings → Pages → Source: GitHub Actions**. O workflow
+Falta uma vez só, no GitHub: **Settings → Pages → Source: GitHub Actions**. O workflow
 `.github/workflows/pages.yml` roda os testes, monta `publicar/` e publica. Para o Pages gratuito o
 repositório precisa ser público — o que expõe o **código**, nunca os dados (ficam no aparelho;
 `data/` está no `.gitignore` e há teste que falha se vazar para a publicação).
@@ -262,6 +259,7 @@ aparece como "indisponível" se o add-on não expõe a ação.
 | 6 | Rede local com chave, manifesto, CSS de celular, resgate de dados órfãos (202 → 210) | pergunta: "dá para usar no celular?" |
 | 7 | IndexedDB, service worker, Claude API no navegador, mesclagem, publicação no Pages (210 → 223) | pedido: celular **sem** o PC ligado |
 | 8 | Este documento, ponteiro no `CLAUDE.md`, repositório próprio do projeto e commit inicial | pedido: não gastar tokens recontando a história a cada sessão |
+| 9 | Push para `github.com/Lucas-023/mandarim` (remote `origin`, SSH) | pedido: ter o repositório chamado `mandarim` |
 
 ---
 
