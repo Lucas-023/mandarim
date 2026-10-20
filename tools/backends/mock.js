@@ -65,6 +65,27 @@ export async function generate({ briefing }) {
     fieldPhrases: [
       { hz: '好球！', py: 'Hǎo qiú!', pt: 'Boa bola!', when: 'quando um colega acerta um passe' },
     ],
+    roleplay: {
+      title: 'Depois do jogo',
+      situation: 'Um colega novo puxa conversa na saída do campo.',
+      turns: [
+        {
+          partner: { hz: '你经常踢足球吗？', py: 'Nǐ jīngcháng tī zúqiú ma?', pt: 'Você joga futebol com frequência?' },
+          task: 'Diga que joga duas vezes por semana.',
+          answers: [
+            { hz: '我每周踢两次。', py: 'Wǒ měi zhōu tī liǎng cì.', pt: 'Jogo duas vezes por semana.' },
+          ],
+        },
+        {
+          partner: { hz: '周末一起踢吧！', py: 'Zhōumò yìqǐ tī ba!', pt: 'Vamos jogar juntos no fim de semana!' },
+          task: 'Aceite o convite.',
+          answers: [
+            { hz: '好啊！', py: 'Hǎo a!', pt: 'Beleza!' },
+            { hz: '好，周末见！', py: 'Hǎo, zhōumò jiàn!', pt: 'Combinado, até o fim de semana!' },
+          ],
+        },
+      ],
+    },
     grammarNote: {
       pointId: 'frequencia-ci',
       point: 'Frequência com 每…次',

@@ -36,6 +36,8 @@ export function renderPack(ctx) {
       h('span', { class: 'chip' }, `nível ${pack.focus.level}`)),
     h('div', { class: 'actions' },
       button('Estudar os exercícios deste pacote', () => ctx.go('study', { exercise: 'pack', date: pack.date })),
+      button('Falar: conversa simulada', () => ctx.go('speak', { modo: 'conversa', date: pack.date }), { kind: 'secondary' }),
+      button('Falar: repetir as frases', () => ctx.go('speak', { modo: 'repetir', date: pack.date }), { kind: 'secondary' }),
       button('Criar cartões do diálogo', () => ctx.go('cards', { prefill: dialogueText(pack) }), { kind: 'secondary' }),
       button('Revisar cartões pendentes', () => ctx.go('cards', { tab: 'review' }), { kind: 'ghost' }),
       button('Currículo gramatical', () => { ctx.ui.packTab = 'gramatica'; ctx.render(); }, { kind: 'ghost' })),
@@ -178,7 +180,8 @@ function renderEmpty(ctx) {
       'recentes, das suas lacunas de conversa e dos temas em que você vai mal.'),
     h('p', { class: 'hint' },
       'O que é enviado ao modelo: nível estimado, habilidades, itens que você errou, temas fracos, ' +
-      'o texto do campo "o que não consegui dizer" das conversas e a lista de palavras já conhecidas. ' +
+      'o texto do campo "o que não consegui dizer" das conversas, as palavras que você já encontrou no app ' +
+      'e as frases que travaram na prática de fala. ' +
       'Nome e histórico completo não são enviados. Cada briefing fica salvo em data/outbox/ para você conferir.'),
     local && caixaConfigurada()
       ? h('div', { class: 'callout' },

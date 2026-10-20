@@ -84,5 +84,6 @@ test('habilidades não avaliadas geram aviso, não exercício inventado', () => 
   const recs = buildRecommendations(s);
   const listening = recs.find((r) => r.id === 'listening_unassessed');
   assert.ok(listening);
-  assert.match(listening.why, /não tem áudio/);
+  assert.match(listening.why, /não estima/);
+  assert.equal(listening.action.params.exercise, 'listening', 'leva ao exercício de escuta que existe');
 });

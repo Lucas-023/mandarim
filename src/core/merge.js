@@ -73,6 +73,7 @@ export function mergeStates(aBruto, bBruto) {
     ['packs', (x) => x.date],
     ['lexiconExtra', (x) => x.hz],
     ['cardDrafts', (x) => x.id],
+    ['falaRegistro', (x) => x.id],
   ];
   for (const [campo, chave] of listas) {
     const { lista, novos } = unirPor(a[campo], b[campo], chave);

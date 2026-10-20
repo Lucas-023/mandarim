@@ -181,7 +181,9 @@ test('o briefing leva erros recentes, temas fracos e lacunas de conversa', () =>
   assert.ok(b.missedItems.length > 0);
   assert.ok(b.weakTags.some((t) => t.tag === 'futebol'));
   assert.ok(b.conversationGaps.some((g) => /frequência/i.test(g.couldNotSay)));
-  assert.ok(b.knownWords.length > 100);
+  // O dicionário do app não é o que o aluno sabe: vai como sugestão, não como sabido.
+  assert.ok(b.candidateWords.length > 0);
+  assert.ok(Array.isArray(b.seenWords));
 });
 
 test('o briefing não envia o nome do usuário', () => {

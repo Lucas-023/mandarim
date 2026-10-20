@@ -36,14 +36,14 @@ O servidor escuta apenas em `127.0.0.1` e não expõe nada na rede (veja abaixo 
 npm test     # node --test tests/   (Node 18+)
 ```
 
-272 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
+294 testes cobrem XP, persistência, nivelamento, estimativa de habilidades, geração de cartões,
 exportação para o Anki, exercícios, recomendações, o pipeline de LLM (validação do pacote, briefing,
 ingestão, gerador por linha de comando), a repetição espaçada (intervalos, recaídas, leeches, fila de
 revisão), o currículo gramatical, a sessão persistida (inclusive o ciclo de salvar e recarregar no
 meio do exercício), o áudio (voz, escuta, ditado, gravação, envio de mídia ao Anki), a reavaliação
 periódica, o servidor (persistência após `SIGKILL`, backups, chave da rede local, mídia, travessia de
 caminho, manifesto do celular), a chamada direta à Claude API pelo navegador (cabeçalhos, streaming,
-erros por situação, custo), a caixa postal celular ↔ computador pelo GitHub, o baralho interno (FSRS, fila do dia, irmãos, desfazer, XP sem proficiência), a mesclagem de aparelhos, a pasta de publicação e a renderização de
+erros por situação, custo), a caixa postal celular ↔ computador pelo GitHub, o baralho interno (FSRS, fila do dia, irmãos, desfazer, XP sem proficiência), a prática de fala (fila, autoavaliação, conversa simulada, XP sem proficiência), o briefing com o que você já viu de fato, a mesclagem de aparelhos, a pasta de publicação e a renderização de
 todas as telas.
 
 ## O que está implementado (Fase 1)
@@ -83,6 +83,7 @@ todas as telas.
 | Geração do pacote pelo próprio celular, com chave da Claude API no aparelho | ✅ |
 | Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
 | Baralho interno estilo Anki (FSRS, 4 notas, passos, navegador, estatísticas), sem precisar do Anki | ✅ |
+| Prática de fala: repetir em voz alta, dizer a partir do português, conversa simulada; gravar e comparar com o modelo | ✅ (autoavaliação, sem nota) |
 | Service worker para funcionar em modo avião | ✅ |
 | Mesclagem de dois aparelhos sem perder histórico | ✅ |
 | Léxico que cresce a cada pacote (segmentação e pinyin melhoram sozinhos) | ✅ |
@@ -90,9 +91,9 @@ todas as telas.
 
 ### O que **não** está implementado (e por quê)
 
-- **Reconhecimento de fala / avaliação de pronúncia (Etapa F)**: 口语 continua **não avaliada**. Dá
-  para gravar sua voz e comparar com o áudio, mas o sistema não atribui nota de pronúncia — não há
-  como fazer isso com confiança aqui.
+- **Reconhecimento de fala / avaliação de pronúncia (Etapa F)**: 口语 continua **não avaliada**. A
+  tela **Falar** treina a fala (ouvir, falar, gravar, comparar) com **autoavaliação**, mas o sistema
+  não atribui nota de pronúncia — não há como fazer isso com confiança aqui.
 - **Fala natural de nativo sob demanda**: a escuta no app usa a voz sintetizada do navegador. Áudio
   real só existe para o que você gravar.
 - **Tradução automática por LLM**: não há serviço externo nem chave de API configurada. A tradução
@@ -181,7 +182,14 @@ especial estrutura gramatical) e **nunca perder de vista o que já foi visto**.
 `是…的`. O briefing informa o que já foi apresentado e qual é o próximo da fila; o gerador ensina
 esse, e só esse. Se o próximo for trivial para o seu nível, o prompt manda tratá-lo em duas linhas e
 ensinar o seguinte — foi o que aconteceu no pacote de exemplo: ele passou por 是 em dois exercícios e
-explicou 的. Mais 10 a 14 palavras novas, que não estejam em `knownWords` nem nos pacotes recentes.
+explicou 的. Mais 10 a 14 palavras novas, que não estejam em `seenWords` nem nos pacotes recentes,
+escolhidas de preferência em `candidateWords`.
+
+`seenWords` é o que você **já encontrou com evidência**: apresentado por pacote, cobrado em
+exercício, aprovado como cartão ou acertado no nivelamento. O léxico base não entra: até o prompt
+pack-v3 ele ia inteiro como "conhecido", e o modelo nunca ensinava 传球, 守门员, 换人… — mas usava
+essas palavras nas frases. Agora o léxico vai como `candidateWords`: até 30 palavras ainda não vistas,
+em rodízio entre os seus objetivos (cotidiano, futebol, conversa), da mais fácil para a mais difícil.
 
 **B) Reencontro.** O agendador (`src/core/schedule.js`) decide o que precisa voltar. Até 8 palavras
 devidas são reapresentadas **em frases de exemplo diferentes** das que você já viu, marcadas com
@@ -241,7 +249,8 @@ arquivo pode ser editado à mão — e **rejeita o pacote inteiro** se o modelo:
 
 - mandar qualquer campo de proficiência (`skills`, `score`, `xp`, `proficiency`…). Conteúdo gerado
   nunca mexe na sua pontuação: ela continua vindo só das suas respostas;
-- gerar exercício de escuta ou fala (`listening`/`speaking`), porque o app não tem áudio nem microfone;
+- gerar exercício de fala (`speaking`) com nota: a fala só existe na conversa simulada (`roleplay`),
+  que é autoavaliada; exercício de escuta só passa se trouxer o texto que o app vai falar;
 - devolver pinyin ou tradução vazios, campo chinês sem caracteres chineses, alternativas repetidas,
   resposta fora da faixa, ou exercício de produção sem critérios de correção.
 
@@ -264,8 +273,8 @@ primeiro pacote real, o minerador já reconhecia 比赛, 休息 e outras 8 palav
 
 O que é enviado ao modelo: nível estimado, pontuações e contagem de evidências por habilidade,
 objetivos, minutos por dia, itens que você errou recentemente, temas fracos, expressões novas que
-você anotou, o texto do campo "o que não consegui dizer" das últimas conversas, e a lista de palavras
-já conhecidas (para não repetir).
+você anotou, o texto do campo "o que não consegui dizer" das últimas conversas, a lista de palavras
+que você já encontrou no app (para não repetir) e as frases que travaram na prática de fala.
 
 O que **não** é enviado: seu nome, o histórico completo, o conteúdo dos seus cartões, suas anotações
 livres, nada de áudio.
@@ -443,6 +452,7 @@ porque o app força a gravação ao perder o foco (`visibilitychange`, `pagehide
 | Ditado | O app fala; você escreve. Aceita caracteres, pinyin com tom e sem tom | Correção por palavra-chave, confiança baixa |
 | Gravar áudio real | `MediaRecorder` → `data/media/` no servidor local → anexado ao cartão | Precisa do servidor local; sem ele, só download |
 | Enviar áudio ao Anki | `storeMediaFile` antes das notas; campo `[sound:arquivo]` | Se a mídia falhar, a nota não promete áudio que não existe |
+| Falar (tela própria) | Repetir em voz alta, dizer a partir do português, conversa simulada. Grava a sua voz para comparar com o modelo e descarta | Autoavaliação: decide a fila e avisa o gerador, nunca vira nota de 口语 |
 
 A escuta agora **gera evidência real** de 听力, e o cálculo da habilidade diz quantas evidências
 vieram de voz sintetizada: *"3 de 3 evidência(s) vêm de voz sintetizada do navegador, não de fala
@@ -628,7 +638,10 @@ seu modelo de nota.
   computador e no app publicado, mas não pela rede local em HTTP simples.
 - A mesclagem resolve conflitos por regra fixa (mais recente ganha nos campos que não são lista).
   Não há histórico de versões nem desfazer: exporte antes se estiver em dúvida.
-- A pronúncia não recebe nota: não há avaliação automática confiável aqui.
+- A pronúncia não recebe nota: não há avaliação automática confiável aqui. A tela Falar usa
+  autoavaliação (travei / quase / saiu bem), que organiza a prática mas não mede proficiência.
+- A conversa simulada segue um roteiro: o colega fala o texto do pacote, não reage ao que você disse.
+  Pacotes até o prompt pack-v3 não têm roteiro próprio; nesse caso ele é montado do diálogo.
 - O currículo gramatical tem 50 pontos — cobre com folga o caminho até algo próximo de HSK 3, mas
   não além disso.
 - A correção de respostas abertas é por palavras-chave, com confiança declarada como baixa.

@@ -7,8 +7,9 @@
  */
 import { estimateAllSkills, SKILL_BY_ID } from './skills.js';
 import { errorTags } from './exercises.js';
-import { dailyGoal, computeStreak } from './xp.js';
+import { dailyGoal, computeStreak, dayKey } from './xp.js';
 import { difficultiesByTag } from './placement.js';
+import { resumoFala } from './fala.js';
 
 const PRIORITY = { alta: 0, media: 1, baixa: 2 };
 
@@ -117,9 +118,23 @@ export function buildRecommendations(state, { now = Date.now() } = {}) {
     add({
       key: 'export_cards',
       title: `Exportar ${approved.length} cartão(ões) aprovado(s)`,
-      why: 'Cartões aprovados só entram na repetição espaçada depois de chegarem ao Anki.',
+      why: 'Opcional: só se você também usa o Anki de verdade. Aprovados já entram no baralho do app.',
       action: { view: 'cards', params: { tab: 'export' } },
-      priority: 'media',
+      priority: 'baixa',
+    });
+  }
+
+  // Falar é o objetivo principal e nenhum exercício escrito treina a boca.
+  const querConversar = state.profile.goals.some((g) => ['conversar_simples', 'futebol'].includes(g.id) && g.priority <= 3);
+  const fala = resumoFala(state);
+  if (querConversar && fala.hoje === 0 && (state.packs || []).length) {
+    add({
+      key: `speak_${dayKey(new Date(now))}`,
+      title: 'Falar em voz alta (10 minutos)',
+      why: 'Conversar é um dos seus objetivos principais, e os exercícios escritos não treinam a fala. ' +
+        `Hoje: nenhuma frase dita em voz alta${fala.travadasAgora ? `; ${fala.travadasAgora} frase(s) travada(s) esperando nova tentativa` : ''}.`,
+      action: { view: 'speak' },
+      priority: 'alta',
     });
   }
 
@@ -151,17 +166,17 @@ export function buildRecommendations(state, { now = Date.now() } = {}) {
       add({
         key: 'listening_unassessed',
         title: 'Compreensão auditiva ainda não avaliada',
-        why: 'Esta versão não tem áudio. Para não estimar sem dados, registre práticas reais de escuta como conversa.',
-        action: { view: 'activities' },
-        priority: 'baixa',
+        why: 'Nenhum exercício de escuta foi feito ainda: sem eles o app não estima a compreensão auditiva. A voz é sintetizada pelo navegador.',
+        action: { view: 'study', params: { exercise: 'listening' } },
+        priority: 'media',
       });
     }
     if (s.skill === 'speaking') {
       add({
         key: 'speaking_unassessed',
         title: 'Produção oral ainda não avaliada',
-        why: 'Sem microfone/reconhecimento de fala nesta versão. Conversas registradas documentam a prática, mas não geram pontuação.',
-        action: { view: 'activities' },
+        why: 'O app não avalia pronúncia com confiança, então não dá nota de fala. Pratique na tela Falar (autoavaliação) e registre conversas reais.',
+        action: { view: 'speak' },
         priority: 'baixa',
       });
     }

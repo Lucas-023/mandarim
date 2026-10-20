@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 
 import { BACKENDS } from './generate.js';
 import { gerarPacote } from '../src/core/packPipeline.js';
-import { describeBriefing } from '../src/core/briefing.js';
+import { describeBriefing, atualizarBriefingAntigo, incorporarPacotesAnteriores } from '../src/core/briefing.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const execFileP = promisify(execFile);
@@ -120,14 +120,17 @@ async function publicar(dir, mensagem) {
   }
 }
 
-/** Pedidos prontos para atender, do mais recente ao mais antigo. */
+/**
+ * Pedidos prontos para atender, do mais ANTIGO ao mais recente: assim o pacote de
+ * hoje já existe quando o de amanhã é gerado, e entra no briefing dele.
+ */
 export async function pedidosAtendiveis(dir, agora) {
   let nomes = [];
   try {
     nomes = await fs.readdir(path.join(dir, 'pedidos'));
   } catch { /* sem pasta: nenhum pedido */ }
   const prontos = [];
-  for (const nome of nomes.sort().reverse()) {
+  for (const nome of nomes.sort()) {
     const date = nome.match(DATA_ARQUIVO)?.[1];
     if (!date || (await existe(path.join(dir, 'pacotes', `${date}.json`)))) continue;
     const pedido = await lerJson(path.join(dir, 'pedidos', nome));
@@ -139,8 +142,31 @@ export async function pedidosAtendiveis(dir, agora) {
   return prontos;
 }
 
+/** Pacotes já entregues na caixa nos 7 dias antes de `date`. */
+async function pacotesAnteriores(dir, date) {
+  let nomes = [];
+  try {
+    nomes = await fs.readdir(path.join(dir, 'pacotes'));
+  } catch { return []; }
+  const [a, m, d] = date.split('-').map(Number);
+  const semanaAntes = new Date(Date.UTC(a, m - 1, d - 7)).toISOString().slice(0, 10);
+  const pacotes = [];
+  for (const nome of nomes) {
+    const dia = nome.match(DATA_ARQUIVO)?.[1];
+    if (!dia || dia >= date || dia < semanaAntes) continue;
+    const p = await lerJson(path.join(dir, 'pacotes', nome));
+    if (p) pacotes.push(p);
+  }
+  return pacotes;
+}
+
 async function atender(pedido, opts, log) {
-  const { date, briefing } = pedido;
+  const { date } = pedido;
+  // O pedido pode ter saído antes do pacote de ontem existir, ou de uma versão
+  // antiga do app: completa com o que este computador já gerou.
+  const completado = incorporarPacotesAnteriores(atualizarBriefingAntigo(pedido.briefing), await pacotesAnteriores(opts.dir, date));
+  const { briefing } = completado;
+  if (completado.incorporados.length) log(`[pedido ${date}] considerando pacotes já gerados: ${completado.incorporados.join(', ')}`);
   const arqPacote = path.join(opts.dir, 'pacotes', `${date}.json`);
   const arqErro = path.join(opts.dir, 'erros', `${date}.json`);
 

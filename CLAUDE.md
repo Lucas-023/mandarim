@@ -6,7 +6,8 @@
 > Comece por lá para não reimplementar o que existe nem repetir erro já resolvido.
 >
 > Resumo em uma linha: Fase 1 completa + geração diária por LLM + repetição espaçada + currículo
-> gramatical + áudio + celular autônomo (GitHub Pages, IndexedDB, chave própria). 223 testes.
+> gramatical + áudio + celular autônomo (GitHub Pages, caixa postal) + baralho FSRS + prática de fala
+> com autoavaliação. 294 testes.
 >
 > Ao concluir um trabalho relevante neste projeto, **atualize `ESTADO-DO-PROJETO.md`** seguindo a
 > §8 daquele arquivo ("Como manter este documento"), que tem os gatilhos, os comandos que regeneram

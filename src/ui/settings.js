@@ -156,7 +156,8 @@ export function renderSettings(ctx) {
     h('div', { class: 'callout' },
       h('strong', {}, 'O que sai da sua máquina: '),
       'nível estimado, pontuações por habilidade, itens que você errou, temas fracos, expressões novas ' +
-      'anotadas, o texto de "o que não consegui dizer" e a lista de palavras já conhecidas. ' +
+      'anotadas, o texto de "o que não consegui dizer", as palavras que você já encontrou no app e as ' +
+      'frases que travaram na prática de fala. ' +
       'Seu nome, o histórico completo e o conteúdo dos seus cartões não são enviados. ',
       'Cada briefing enviado fica salvo em ', h('code', {}, 'data/outbox/'), ' para auditoria.'),
     field('Backend',

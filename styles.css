@@ -294,3 +294,20 @@ code {
   /* Botões de nota grudados embaixo, ao alcance do polegar. */
   .baralho-notas { position: sticky; bottom: calc(.5rem + env(safe-area-inset-bottom, 0)); }
 }
+
+/* ---------- Falar (prática oral) ---------- */
+.btn[hidden] { display: none; }
+.fala-resposta.hidden, .fala-notas.hidden { display: none; }
+.fala-resposta { display: flex; flex-direction: column; gap: .35rem; margin: .6rem 0; }
+.fala-enunciado { margin: .6rem 0; }
+.fala-pt { font-size: 1.3rem; font-weight: 600; }
+.fala-notas { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-top: .8rem; }
+.fala-nota { display: flex; flex-direction: column; align-items: center; gap: .1rem; color: #fff; border: none; min-height: 3.4rem; }
+.fala-nota small { font-size: .75rem; opacity: .85; }
+.fala-nota-travei { background: var(--error); }
+.fala-nota-quase { background: var(--warn); }
+.fala-nota-bem { background: var(--ok); }
+@media (max-width: 720px) {
+  .fala-notas { position: sticky; bottom: calc(.5rem + env(safe-area-inset-bottom, 0)); }
+  .fala-nota small { display: none; }
+}

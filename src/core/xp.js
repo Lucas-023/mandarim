@@ -17,6 +17,8 @@ export const DEFAULT_XP_RULES = {
   placement_complete: 50,
   exercise_set: 10,
   cards_exported: 10,
+  speaking_practice: 15,
+  roleplay: 20,
   daily_goal_bonus: 25,
 };
 
@@ -30,6 +32,8 @@ export const XP_LABELS = {
   placement_complete: 'Nivelamento concluído',
   exercise_set: 'Conjunto de exercícios concluído',
   cards_exported: 'Cartões exportados',
+  speaking_practice: 'Prática de fala (8+ frases em voz alta)',
+  roleplay: 'Conversa simulada concluída',
   daily_goal_bonus: 'Bônus de meta diária',
 };
 

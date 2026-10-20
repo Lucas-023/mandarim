@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-10-14. Testes: **272 passando** (`npm test`).
+> Última atualização: 2026-10-20. Testes: **294 passando** (`npm test`).
 
 ---
 
@@ -20,7 +20,7 @@ local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm in
 para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
-Tamanho atual:  núcleo 6.202 linhas · interface 3.923 · servidor/scripts 1.318 · testes 4.002
+Tamanho atual:  núcleo 6.639 linhas · interface 4.313 · servidor/scripts 1.363 · testes 4.344
 Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -29,7 +29,7 @@ Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 272 testes, ~4s, sem rede
+npm test                       # 294 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -92,6 +92,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   merge.js              mesclagem de dois aparelhos sem perder histórico
   fsrs.js               FSRS-4.5: estabilidade, dificuldade, retenção (o algoritmo do Anki)
   baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer
+  fala.js               prática de fala: fila de frases, autoavaliação, conversa simulada (sem proficiência)
   caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
   xp.js                 XP idempotente, meta diária, sequência, marcos
@@ -105,8 +106,8 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   packs.js              ingestão do pacote diário no app
   packValidation.js     schema do pacote gerado (roda no gerador E no app)
   packPipeline.js       orquestração da geração (compartilhada PC/celular)
-  briefing.js           o que é enviado ao modelo (e fica auditável)
-  prompts/pack.js       prompt de sistema versionado (pack-v3)
+  briefing.js           o que é enviado ao modelo (e fica auditável); completa pedidos atrasados do celular
+  prompts/pack.js       prompt de sistema versionado (pack-v4)
   llmBrowser.js         Claude API direto do navegador, streaming
   secrets.js            chave da API, por aparelho, FORA do estado
   ankiExport.js         TSV/CSV + histórico de exportações
@@ -120,13 +121,13 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/grammar.js    50 estruturas em ordem de progressão
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao, caixa, baralho)
+                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar)
 tools/generate.js       gerador por linha de comando
 tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  19 arquivos, 272 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  20 arquivos, 294 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -300,6 +301,47 @@ Anki dentro do app". Decisões:
 **Se mudar:** dar evidência de habilidade por revisão viola §3.2; copiar o conteúdo para o cartão
 cria duas fontes que divergem ao editar.
 
+### 3.21 O briefing manda o que o aluno JÁ VIU, não o dicionário
+
+Até o pack-v3, `knownWords` era o léxico base inteiro (154 palavras) mais os cartões aprovados, e o
+prompt proibia ensinar como novo o que estivesse ali. Resultado medido nos pacotes de 14 e 15/10:
+o vocabulário de futebol escrito à mão (传球, 守门员, 换人, 越位…) nunca era ensinado, e mesmo assim
+aparecia nas frases ("我是后卫") como se fosse sabido. Agora:
+- `seenWords` = itens do agendador + cartões aprovados + vocabulário acertado no nivelamento;
+- `candidateWords` = léxico base ainda não visto, em **rodízio** entre os objetivos do perfil (sem
+  rodízio o primeiro objetivo ocupava as 30 vagas e o futebol sumia) e por nível dentro de cada um;
+- o prompt manda usar nas frases só palavras vistas, do próprio pacote ou de nível 1 básico.
+**Se mudar:** voltar a mandar o léxico como "conhecido" reabre o buraco do futebol.
+
+### 3.22 O computador completa o pedido com os pacotes que ele já gerou
+
+O celular pede hoje e amanhã de uma vez, antes de qualquer pacote existir; o de amanhã não sabia o que
+o de hoje ensinou, e 是 foi ensinado em 14/10 e de novo em 15/10. Duas mudanças em
+`tools/caixaPostal.js`: pedidos são atendidos do **mais antigo para o mais novo**, e cada briefing passa
+por `incorporarPacotesAnteriores` (vocabulário vai para `alreadyTaught`, a gramática entra em `seen` e
+a fila anda) com os pacotes da caixa da última semana. É idempotente. `atualizarBriefingAntigo`
+converte pedidos que ainda chegam no formato pack-v3 (o iPhone só pega a versão nova na 2ª abertura).
+**Se mudar:** atender do mais novo primeiro faz o pacote de amanhã ser gerado sem saber do de hoje.
+
+### 3.23 Fala com autoavaliação, nunca com nota
+
+Objetivo nº 1 do usuário é conversar, e nada no app fazia a boca trabalhar. A tela **Falar**
+(`src/ui/falar.js`, lógica em `src/core/fala.js`) tem três modos: repetir em voz alta (shadowing),
+dizer a partir do português (recuperação ativa falada) e conversa simulada. Decisões:
+- **Nota é autoavaliação** (travei / quase / saiu bem). Ordena a fila (travou volta primeiro; saiu bem
+  descansa 3 dias), vai para o briefing como `speakingStuck` e dá XP (`speaking_practice` com 8+
+  frases no dia; `roleplay` por conversa concluída, ambos 1×/dia). **Nunca** cria `skillEvidence`:
+  口语 segue "não avaliada". Teste cobre.
+- **Gravação não é guardada** (`gravadorDeComparacao`): voz própria 30×/dia lotaria o aparelho. O
+  microfone é solto a cada redesenho (`soltarMicrofone`), senão a gravação esquecida segura o mic
+  e, no iPhone, o som sai baixo pelo alto-falante de chamada.
+- **Revelar mexe só no DOM**: redesenhar jogaria fora a gravação recém-feita. Só a nota faz `commit`.
+- **Conversa simulada vem do pacote** (`roleplay`, pack-v4: tarefa aberta em português + 1–3
+  respostas aceitáveis) e, em pacote antigo, é montada do diálogo (você é quem fala em 2º lugar).
+  Não há modelo respondendo ao vivo: o usuário escolheu não pagar API, e a caixa postal leva 30 min.
+**Se mudar:** dar evidência de habilidade pela autoavaliação viola §3.2; guardar as gravações exige
+cota e limpeza que não existem.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -318,6 +360,7 @@ cria duas fontes que divergem ao editar.
 | 10 | Repositório público + Pages via Actions; app no ar em `lucas-023.github.io/mandarim` | pedido: usar no celular |
 | 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 245) | pedido: não pagar API, iPhone |
 | 12 | Baralho interno com FSRS ("um pequeno Anki"): estudo com 4 notas, navegador, adicionar, estatísticas, mesclagem (245 → 272) | pedido: Anki no iPhone sem pagar AnkiMobile |
+| 13 | Briefing com `seenWords`/`candidateWords` (o léxico deixou de ir como "conhecido"); pedidos atendidos em ordem e completados com pacotes já gerados; tela Falar (repetir, dizer, conversa simulada) com autoavaliação; prompt pack-v4 com `roleplay`; recomendações desatualizadas corrigidas (272 → 294). Geração real com pack-v4 conferida: válida na 1ª tentativa, US$ 0,52, ensinou 守门员/传球/进球 | pedido: "o que falta para eu realmente aprender" — diagnóstico achou o bug do futebol e a falta de fala |
 
 ---
 
@@ -354,10 +397,15 @@ aberto: basta uma função que carregue o dicionário e registre em lote.
 @anthropic-ai/sdk`, rodar com `--dry-run`, depois de verdade. O caminho do navegador
 (`llmBrowser.js`) é o que foi testado de fato.
 
-### 5.5 Sem avaliação de pronúncia
-Gravar a própria voz e comparar com o TTS existe como ideia, não como código. Reconhecimento de fala
-para julgar tom dá falso positivo e negativo demais para virar nota — se for feito, que seja como
-autoavaliação assistida, nunca como pontuação automática.
+### 5.5 Fala: próximos passos
+Gravar e comparar com o TTS existe (tela Falar), com autoavaliação. O que falta, em ordem de valor:
+- **Transcrição como espelho**: `webkitSpeechRecognition` com `lang='zh-CN'` mostrando "o que o
+  reconhecedor entendeu" depois de falar. Útil como pista de tom, nunca como nota (dá falso positivo
+  e negativo demais). No iPhone só funciona no Safari com Siri ligada, e talvez não no app instalado
+  na tela inicial: testar no aparelho antes de confiar.
+- **Conversa ao vivo** com modelo respondendo: exige chave da API no aparelho (o usuário escolheu não
+  pagar) ou um servidor acessível de fora. O roteiro do pacote cobre o essencial sem isso.
+- Frases do modo Falar ainda não alimentam o agendador (`schedule.js`): só a fila da própria tela.
 
 ### 5.6 Mesclagem não tem desfazer
 Resolve conflito por regra fixa e relata o que fez, mas não guarda versão anterior. Exportar antes é
@@ -427,6 +475,16 @@ Registradas para ninguém cair de novo.
     teclado troca hífen por traço tipográfico, e o token pode ser colado no campo errado. Hoje o campo
     vem preenchido a partir do endereço do Pages, `normalizarRepo` tolera o teclado e o token no
     lugar errado é explicado. Valores são lidos do campo no toque, não do evento `input`.
+17. **`knownWords` era o dicionário, não o aluno.** Ninguém percebeu por duas rodadas porque os
+    pacotes saíam válidos e bonitos; só comparar o vocabulário ensinado com o léxico mostrou que o
+    futebol nunca entrava. Ao mexer no briefing, olhe o que o modelo **deixou de** ensinar.
+18. **Elemento passado como `extras` some quando o widget retorna cedo.** `gravadorDeComparacao`
+    devolvia só o aviso quando o navegador não grava, e o botão "Ver resposta" ia junto. Quem recebe
+    filhos de fora precisa anexá-los em todos os caminhos.
+19. **`pkill -f "server.mjs"` mata o próprio shell** que roda o comando (o padrão aparece na linha
+    de comando do bash). Para parar o servidor de teste, use o PID (`pgrep -af`, `kill <pid>`).
+20. **`npm run generate --state=... --out=...` ainda grava o briefing em `data/outbox/`** do projeto.
+    Ao testar com dados temporários, apague a cópia depois.
 
 ---
 

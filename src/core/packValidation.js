@@ -163,6 +163,29 @@ export function validatePack(raw) {
       raw.grammarNote.examples.forEach((ex, i) => v.triple(ex, `grammarNote.examples[${i}]`));
     }
   }
+  // Conversa simulada: o aluno fala e se autoavalia. Opcional (pacotes até
+  // pack-v3 não têm; o app monta o roteiro a partir do diálogo).
+  if (raw.roleplay !== undefined) {
+    const rp = raw.roleplay;
+    v.noForbiddenKeys(rp, 'roleplay');
+    if (!rp || typeof rp !== 'object') {
+      v.fail('roleplay', 'esperava objeto de conversa simulada');
+    } else {
+      v.str(rp.title, 'roleplay.title', { max: 160 });
+      v.str(rp.situation, 'roleplay.situation', { max: 500 });
+      if (v.array(rp.turns, 'roleplay.turns', { min: 2, max: 10 })) {
+        rp.turns.forEach((t, i) => {
+          const p = `roleplay.turns[${i}]`;
+          v.noForbiddenKeys(t, p);
+          if (t?.partner !== undefined) v.triple(t.partner, `${p}.partner`);
+          v.str(t?.task, `${p}.task`, { max: 300 });
+          if (v.array(t?.answers, `${p}.answers`, { min: 1, max: 4 })) {
+            t.answers.forEach((ans, j) => v.triple(ans, `${p}.answers[${j}]`));
+          }
+        });
+      }
+    }
+  }
   if (raw.coachNotes !== undefined && v.array(raw.coachNotes, 'coachNotes', { min: 1, max: 8 })) {
     raw.coachNotes.forEach((note, i) => v.str(note, `coachNotes[${i}]`, { max: 600 }));
   }

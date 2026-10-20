@@ -358,6 +358,25 @@ test('ciclo completo: pedido do celular → pacote válido de volta pelo git', a
   assert.equal(await git(pc, 'rev-parse', 'HEAD'), antes);
 });
 
+test('dois pedidos juntos: o de amanhã é gerado depois e sabe o que o de hoje ensinou', async (t) => {
+  const { pc, pedir, remoto, base } = await montarCaixa(t);
+  const agora = new Date('2026-10-21T12:00:00Z');
+  // Os dois saem do celular ao mesmo tempo, antes de existir qualquer pacote.
+  await pedir([
+    pedido('2026-10-21', new Date('2026-10-21T04:00:00Z')),
+    pedido('2026-10-20', new Date('2026-10-20T11:00:00Z')),
+  ]);
+  const outbox = path.join(base, 'outbox');
+  assert.equal(await atenderCaixa([`--dir=${pc}`, `--repo=${remoto}`, `--outbox=${outbox}`,
+    '--backend=mock', `--agora=${agora.toISOString()}`, '--quiet']), 0);
+  assert.deepEqual(await pedidosAtendiveis(pc, agora), [], 'os dois foram atendidos');
+
+  const ontem = JSON.parse(await fs.readFile(path.join(pc, 'pacotes', '2026-10-20.json'), 'utf8'));
+  const enviado = JSON.parse(await fs.readFile(path.join(outbox, '2026-10-21-briefing-celular.json'), 'utf8'));
+  for (const v of ontem.vocab) assert.ok(enviado.alreadyTaught.includes(v.hz), v.hz);
+  assert.ok(enviado.grammar.seen.includes(ontem.grammarNote.pointId));
+});
+
 test('sem clone e sem --repo: erro explica o que fazer', async (t) => {
   const base = await fs.mkdtemp(path.join(os.tmpdir(), 'caixa-'));
   t.after(() => fs.rm(base, { recursive: true, force: true }));

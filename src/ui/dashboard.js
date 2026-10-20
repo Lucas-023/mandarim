@@ -15,6 +15,7 @@ import { formatDateTime as fmt } from './dom.js';
 import { grammarProgress, nextGrammarPoints } from '../core/content/grammar.js';
 import { resumoBaralho } from './baralho.js';
 import { estatisticas } from '../core/baralho.js';
+import { resumoFala, MINIMO_FRASES_XP } from '../core/fala.js';
 
 export function renderDashboard(ctx) {
   const { state } = ctx;
@@ -53,6 +54,7 @@ export function renderDashboard(ctx) {
       stat('Itens de exercício respondidos hoje', itemsToday, 'Registrado pelo próprio app'),
       stat('Cartões novos aprovados hoje', newCardsToday, 'Aprovados ou exportados hoje'),
       stat('Cartões revisados no baralho hoje', estatisticas(state).respondidosHoje, 'Respostas registradas no baralho do app'),
+      stat('Frases faladas em voz alta hoje', resumoFala(state).hoje, `Autoavaliação, não nota · ${MINIMO_FRASES_XP} por dia dão XP`),
       // O Anki de verdade só é lido no computador (AnkiConnect); no celular é ruído.
       ctx.store.mode === 'server' || state.settings.usesAnki || state.ankiStats ? renderAnkiStat(ctx) : null),
   ));
@@ -117,7 +119,8 @@ export function renderDashboard(ctx) {
         `diálogo com ${pack.dialogue.lines.length} falas · gerado por ${pack.provenance?.backend || 'LLM'}`),
       h('div', { class: 'actions' },
         button('Abrir pacote', () => ctx.go('pack', { date: pack.date })),
-        button('Ir direto aos exercícios', () => ctx.go('study', { exercise: 'pack', date: pack.date }), { kind: 'secondary' }))));
+        button('Ir direto aos exercícios', () => ctx.go('study', { exercise: 'pack', date: pack.date }), { kind: 'secondary' }),
+        button('Conversa simulada', () => ctx.go('speak', { modo: 'conversa', date: pack.date }), { kind: 'secondary' }))));
   } else {
     wrap.append(card('Pacote do dia',
       h('p', { class: 'hint' }, 'Nenhum pacote gerado ainda. O gerador monta um por dia a partir dos seus erros recentes.'),
@@ -152,8 +155,10 @@ export function renderDashboard(ctx) {
       button('Começar estudo de hoje', () => ctx.go('study')),
       button('Revisar vocabulário', () => ctx.go('study', { exercise: 'vocab' }), { kind: 'secondary' }),
       button('Criar flashcards de um texto', () => ctx.go('cards'), { kind: 'secondary' }),
+      button('Praticar a fala', () => ctx.go('speak'), { kind: 'secondary' }),
+      button('Conversa simulada', () => ctx.go('speak', { modo: 'conversa' }), { kind: 'secondary' }),
       button('Registrar conversa real', () => ctx.go('activities', { tab: 'conversation' }), { kind: 'secondary' }),
-      button('Exercício de escuta', () => ctx.toast('Sem áudio nesta versão. Registre uma prática de escuta em "Registrar".', 'warn'), { kind: 'ghost' }),
+      button('Exercício de escuta', () => ctx.go('study', { exercise: 'listening' }), { kind: 'secondary' }),
       button('Histórico e recomendações', () => ctx.go('history'), { kind: 'secondary' }))));
 
   if (state.plan) wrap.append(renderPlanCard(state.plan));

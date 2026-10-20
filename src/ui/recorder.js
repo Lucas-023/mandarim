@@ -55,6 +55,76 @@ export async function enviarAudio(blob, nomeBase, { modo = 'device', db = null, 
 }
 
 /**
+ * Gravador de comparação, para a prática de fala: grava, toca de volta e
+ * descarta. Nada é guardado — o áudio vive só enquanto a tela estiver aberta.
+ * `extras` são botões postos ao lado (ex.: ouvir o modelo de novo), para a
+ * comparação ficar a um toque de distância.
+ */
+/** Microfone aberto por um gravador de comparação, para soltar ao trocar de tela. */
+let microfoneAberto = null;
+
+export function soltarMicrofone() {
+  microfoneAberto?.getTracks().forEach((t) => t.stop());
+  microfoneAberto = null;
+}
+
+export function gravadorDeComparacao({ extras = [] } = {}) {
+  const raiz = h('div', { class: 'audio-row' });
+  if (!canRecord()) {
+    raiz.append(...extras, h('small', { class: 'hint' },
+      'Este navegador não permite gravar (precisa de HTTPS e permissão de microfone). Fale em voz alta assim mesmo.'));
+    return raiz;
+  }
+
+  let recorder = null;
+  let stream = null;
+  let url = null;
+  const player = h('audio', { hidden: true });
+  const estado = h('span', { class: 'hint' });
+  const btnOuvir = button('▶ Minha voz', () => player.play(), { kind: 'secondary' });
+  btnOuvir.hidden = true;
+
+  const btnGravar = button('● Gravar', async () => {
+    if (recorder && recorder.state === 'recording') {
+      try {
+        recorder.stop();
+      } catch { /* já parado */ }
+      // Soltar o microfone na hora: no iPhone, com ele aberto, o som sai baixo pelo alto-falante de chamada.
+      stream?.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microfoneAberto = stream;
+    } catch (err) {
+      estado.textContent = `Microfone não autorizado: ${err?.message || err}`;
+      return;
+    }
+    const mime = mimeSuportado();
+    const pedacos = [];
+    recorder = new MediaRecorder(stream, { mimeType: mime });
+    recorder.ondataavailable = (e) => {
+      if (e.data?.size) pedacos.push(e.data);
+    };
+    recorder.onstop = () => {
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(new Blob(pedacos, { type: mime }));
+      player.src = url;
+      btnOuvir.hidden = false;
+      btnGravar.textContent = '● Gravar de novo';
+      estado.textContent = 'Compare: sua voz e o modelo. Repare na melodia de cada sílaba.';
+    };
+    recorder.start();
+    btnGravar.textContent = '■ Parar';
+    estado.textContent = '';
+    estado.append(h('span', { class: 'rec-dot' }), 'Gravando…');
+  }, { kind: 'secondary' });
+
+  raiz.append(btnGravar, btnOuvir, ...extras, estado, player);
+  return raiz;
+}
+
+/**
  * Widget de gravação. `onSaved({name, url, bytes})` é chamado quando o áudio
  * fica guardado no servidor.
  */

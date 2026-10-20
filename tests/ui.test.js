@@ -15,6 +15,7 @@ const { renderHistory } = await import('../src/ui/history.js');
 const { renderSettings } = await import('../src/ui/settings.js');
 const { renderPack } = await import('../src/ui/pack.js');
 const { renderBaralho } = await import('../src/ui/baralho.js');
+const { renderFalar } = await import('../src/ui/falar.js');
 const { ingestPack } = await import('../src/core/packs.js');
 const { resetRegistry } = await import('../src/core/content/lexicon.js');
 const REAL_PACK = JSON.parse(
@@ -587,4 +588,75 @@ test('painel mostra o resumo do baralho quando há cartões', () => {
   const ctx = makeCtx(estadoComBaralho());
   renderBaralho(ctx);
   assert.match(renderDashboard(ctx).textContent, /Estudar baralho/);
+});
+
+// ───────────────────────────── Falar ─────────────────────────────
+
+function estadoComPacoteHoje(t) {
+  t.after(resetRegistry);
+  const s = emptyState();
+  s.profile.onboardingDone = true;
+  ingestPack(s, JSON.parse(JSON.stringify(REAL_PACK)));
+  return s;
+}
+
+test('falar: repetir mostra a frase com pinyin e a nota registra e avança', (t) => {
+  const ctx = makeCtx(estadoComPacoteHoje(t));
+  let view = renderFalar(ctx);
+  assert.match(view.textContent, /autoavaliação/i, 'diz que a nota não é avaliação');
+  assert.match(view.textContent, new RegExp(REAL_PACK.fieldPhrases[0].hz));
+  assert.match(view.textContent, new RegExp(REAL_PACK.fieldPhrases[0].py.replace(/[?？]/g, '.')));
+  assert.match(view.textContent, /Frase 1 de/);
+  view.find(byButtonLike('Travei')).click();
+  assert.equal(ctx.state.falaRegistro.length, 1);
+  assert.equal(ctx.state.falaRegistro[0].nota, 'travei');
+  view = renderFalar(ctx);
+  assert.match(view.textContent, /Frase 2 de/);
+  ctx.ui.keyHandler({ key: '3' });
+  assert.equal(ctx.state.falaRegistro.at(-1).nota, 'bem');
+  assert.equal(ctx.state.skillEvidence.length, 0);
+});
+
+test('falar: no modo dizer, a frase em chinês fica escondida até pedir', (t) => {
+  const ctx = makeCtx(estadoComPacoteHoje(t), { modo: 'dizer' });
+  const view = renderFalar(ctx);
+  const resposta = view.find(byClass('fala-resposta'));
+  assert.ok(resposta.classList.contains('hidden'));
+  assert.ok(view.find(byClass('fala-notas')).classList.contains('hidden'), 'sem nota antes de tentar');
+  ctx.ui.keyHandler({ key: '1' });
+  assert.equal(ctx.state.falaRegistro.length, 0, 'tecla de nota não vale antes de revelar');
+  ctx.ui.keyHandler({ key: ' ', preventDefault() {} });
+  assert.ok(!resposta.classList.contains('hidden'));
+  ctx.ui.keyHandler({ key: '2' });
+  assert.equal(ctx.state.falaRegistro[0].modo, 'dizer');
+});
+
+test('falar: conversa simulada esconde a resposta, avança turno a turno e dá XP ao fim', (t) => {
+  const ctx = makeCtx(estadoComPacoteHoje(t), { modo: 'conversa' });
+  let view = renderFalar(ctx);
+  assert.match(view.textContent, /Turno 1 de/);
+  assert.match(view.textContent, /Você é B/);
+  const turnos = REAL_PACK.dialogue.lines.filter((l) => l.speaker === 'B').length;
+  for (let i = 0; i < turnos; i += 1) {
+    view = renderFalar(ctx);
+    assert.ok(view.find(byClass('fala-resposta')).classList.contains('hidden'));
+    view.find(byButtonLike('Ver resposta')).click();
+    view.find(byButtonLike('Saiu bem')).click();
+  }
+  view = renderFalar(ctx);
+  assert.match(view.textContent, /Conversa concluída/);
+  assert.ok(ctx.state.xpEvents.some((e) => e.type === 'roleplay'));
+  assert.equal(ctx.state.falaRegistro.filter((r) => r.modo === 'conversa').length, turnos);
+});
+
+test('falar sem pacote explica de onde vêm as frases', () => {
+  const view = renderFalar(makeCtx(emptyState()));
+  assert.match(view.textContent, /vêm do pacote do dia/);
+});
+
+test('o pacote leva à conversa simulada', (t) => {
+  const ctx = makeCtx(estadoComPacoteHoje(t));
+  renderPack(ctx).find(byButton('Falar: conversa simulada')).click();
+  assert.equal(ctx.navigations.at(-1).view, 'speak');
+  assert.equal(ctx.navigations.at(-1).params.modo, 'conversa');
 });
