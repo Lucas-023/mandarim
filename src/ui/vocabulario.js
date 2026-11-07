@@ -9,6 +9,7 @@ import {
   MODELOS_VOCAB, ORDEM_MODELOS_VOCAB, configVocabulario, salvarConfigVocabulario, filaVocabulario,
   responderVocabulario, desfazerVocabulario, sincronizarVocabulario, precisaSincronizarVocabulario,
   suspenderVocabulario, esquecerVocabulario, estatisticasVocabulario, palavraDe,
+  liberarNovosHoje, novosExtrasHoje, montarTreino, responderTreino, treinoDosErros,
 } from '../core/vocabulario.js';
 import { LICOES } from '../core/content/vocabLicoes.js';
 import { speakButton, playAudio, canSpeak } from './audio.js';
@@ -21,6 +22,7 @@ export function renderVocabulario(ctx) {
   const modo = ctx.params.modo || 'inicio';
   if (modo === 'estudar') return renderEstudo(ctx);
   if (modo === 'lista') return renderLista(ctx);
+  if (modo === 'treino') return renderTreino(ctx);
   return renderInicio(ctx);
 }
 
@@ -69,8 +71,47 @@ function renderInicio(ctx) {
       stat(est.retencaoPeriodo == null ? '—' : `${Math.round(est.retencaoPeriodo * 100)}%`, `retenção (${est.dias} d)`)),
     h('p', { class: 'hint' }, 'Mede a memória destes cartões, pela sua própria nota. Não é nota de proficiência.')));
 
+  wrap.append(renderIntensivo(ctx));
   wrap.append(renderOpcoes(ctx));
   return wrap;
+}
+
+function maisNovos(ctx) {
+  const total = ctx.commit((s) => liberarNovosHoje(s, 10), { silent: true });
+  ctx.toast(`+10 cartões novos liberados hoje (${total} a mais que o normal).`, 'success');
+  ctx.go('vocab', { modo: 'estudar' });
+  ctx.render();
+}
+
+function renderIntensivo(ctx) {
+  const extras = novosExtrasHoje(ctx.state);
+  const escolha = { quais: 'todas', direcao: 'misturado' };
+  const opcao = (chave, valores) => h('select', { onChange: (e) => { escolha[chave] = e.target.value; } },
+    ...valores.map(([v, rotulo]) => h('option', { value: v, selected: v === escolha[chave] }, rotulo)));
+  return card('Intensivo',
+    h('p', {}, h('strong', {}, 'Mais palavras novas hoje. '),
+      'Libera 10 cartões novos além do limite, só hoje. Eles entram no agendamento normal.',
+      extras ? ` Hoje você já liberou ${extras} a mais.` : ''),
+    h('div', { class: 'actions' }, button('+10 novos hoje', () => maisNovos(ctx), { kind: 'secondary' })),
+    h('p', {}, h('strong', {}, 'Treino livre. '),
+      'Passa pelos cartões quantas vezes quiser, embaralhados; o que você errar volta até acertar. ',
+      'Não mexe no agendamento: pode repetir à vontade sem bagunçar as revisões.'),
+    h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Quais palavras'),
+      opcao('quais', [['todas', 'Todas das lições ligadas'], ['estudadas', 'Só as que já estudei'], ['dificeis', 'Só as que já errei']])),
+    h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Direção'),
+      opcao('direcao', [['misturado', 'Misturado'], ['reconhecer', '汉字 → português'], ['produzir', 'português → 汉字']])),
+    h('div', { class: 'actions' }, button('Começar treino livre', () => iniciarTreino(ctx, escolha))));
+}
+
+function iniciarTreino(ctx, escolha) {
+  const treino = montarTreino(ctx.state, escolha);
+  if (!treino.total) {
+    ctx.toast(escolha.quais === 'dificeis' ? 'Nenhuma palavra errada ainda. 👏' : 'Nenhuma palavra com esse filtro.', 'info');
+    return;
+  }
+  ctx.ui.treino = { ...treino, escolha, resposta: false };
+  ctx.go('vocab', { modo: 'treino' });
+  ctx.render();
 }
 
 function renderOpcoes(ctx) {
@@ -152,8 +193,11 @@ function renderEstudo(ctx) {
         ? `Os cartões em aprendizado voltam às ${hora(f.espera)}. Pode fechar o app: o progresso está salvo.`
         : `${est.respondidosHoje} resposta(s) hoje. A revisão de amanhã já está agendada.`),
       h('div', { class: 'actions' },
-        button('Voltar', () => ctx.go('vocab')),
-        podeDesfazer ? button('Desfazer última', acaoDesfazer, { kind: 'ghost' }) : null)));
+        button('+10 novos hoje', () => maisNovos(ctx)),
+        button('Treino livre', () => iniciarTreino(ctx, { quais: 'estudadas', direcao: 'misturado' }), { kind: 'secondary' }),
+        button('Voltar', () => ctx.go('vocab'), { kind: 'ghost' }),
+        podeDesfazer ? button('Desfazer última', acaoDesfazer, { kind: 'ghost' }) : null)),
+      h('p', { class: 'hint' }, 'Quer continuar? "+10 novos" traz palavras novas; o treino livre repete as que você já viu sem mexer no agendamento.'));
     return wrap;
   }
 
@@ -248,5 +292,74 @@ function renderLista(ctx) {
     });
     wrap.append(card(`Lição ${l.numero} — ${l.titulo}`, ...(linhas.length ? linhas : [emptyNote('Sem palavras.')])));
   }
+  return wrap;
+}
+
+// ---------------------------------------------------------------- treino livre
+
+function renderTreino(ctx) {
+  const { ui } = ctx;
+  const t = ui.treino;
+  const wrap = h('div', { class: 'stack' });
+  if (!t) {
+    ui.keyHandler = null;
+    wrap.append(card('Treino livre', h('p', {}, 'Nenhum treino em andamento.'),
+      h('div', { class: 'actions' }, button('Voltar', () => ctx.go('vocab')))));
+    return wrap;
+  }
+
+  if (!t.fila.length) {
+    ui.keyHandler = null;
+    const pct = t.total ? Math.round((t.acertosDePrimeira / t.total) * 100) : 0;
+    wrap.append(card('Treino concluído 🎉',
+      h('p', {}, `${t.total} cartão(ões), ${t.acertosDePrimeira} de primeira (${pct}%), ${t.respondidas} respostas no total.`),
+      t.erradas.length
+        ? h('p', {}, 'Errou alguma vez: ', ...t.erradas.map((x) => h('span', { class: 'mono-zh' }, `${x.palavra} `)))
+        : h('p', {}, 'Nenhum erro. 太棒了！'),
+      h('div', { class: 'actions' },
+        t.erradas.length ? button('Treinar só os que errei', () => { ui.treino = { ...treinoDosErros(t), escolha: t.escolha, resposta: false }; ctx.render(); }) : null,
+        button('De novo, tudo', () => iniciarTreino(ctx, t.escolha), { kind: t.erradas.length ? 'secondary' : 'primary' }),
+        button('Voltar', () => { ui.treino = null; ctx.go('vocab'); }, { kind: 'ghost' }))));
+    return wrap;
+  }
+
+  const atual = t.fila[0];
+  const p = palavraDe(atual.palavra);
+  const cfg = configVocabulario(ctx.state);
+  const mostrar = () => {
+    t.resposta = true;
+    if (canSpeak() && cfg.audioAoMostrar) playAudio(p.hanzi);
+    ctx.render();
+  };
+  const marcar = (acertou) => {
+    responderTreino(t, acertou);
+    t.resposta = false;
+    ctx.render();
+  };
+  ui.keyHandler = (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault?.();
+      if (!t.resposta) mostrar(); else marcar(true);
+    } else if (t.resposta && e.key === '1') marcar(false);
+    else if (t.resposta && (e.key === '2' || e.key === '3' || e.key === '4')) marcar(true);
+  };
+
+  const feitas = t.total - new Set(t.fila.map((x) => `${x.palavra}:${x.modelo}`)).size;
+  wrap.append(h('section', { class: 'card baralho-cartao' },
+    h('div', { class: 'baralho-topo' },
+      h('span', { class: 'hint' }, `Treino livre · ${feitas}/${t.total} · ${t.respondidas} respostas`),
+      h('span', { class: 'hint' }, MODELOS_VOCAB[atual.modelo].nome)),
+    bar((feitas / t.total) * 100),
+    t.resposta ? verso(p) : frente(atual, p),
+    t.resposta
+      ? h('div', { class: 'baralho-notas' },
+          h('button', { class: 'btn baralho-nota baralho-nota-1', onClick: () => marcar(false), title: 'Tecla 1' },
+            h('span', { class: 'baralho-nota-int' }, 'volta já'), h('span', {}, 'Errei')),
+          h('button', { class: 'btn baralho-nota baralho-nota-3', onClick: () => marcar(true), title: 'Espaço' },
+            h('span', { class: 'baralho-nota-int' }, 'sai da fila'), h('span', {}, 'Acertei')))
+      : h('div', { class: 'actions' }, button('Mostrar resposta', mostrar)),
+    h('div', { class: 'actions' }, button('Parar', () => { ui.treino = null; ctx.go('vocab'); }, { kind: 'ghost' }))));
+  wrap.append(h('p', { class: 'hint' },
+    'Treino livre não mexe no agendamento. Atalhos: Espaço mostra (e depois vale "Acertei"), 1 = Errei.'));
   return wrap;
 }

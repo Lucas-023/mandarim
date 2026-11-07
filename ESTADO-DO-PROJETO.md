@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-07. Testes: **307 passando** (`npm test`).
+> Última atualização: 2026-11-07. Testes: **313 passando** (`npm test`).
 
 ---
 
@@ -30,7 +30,7 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 307 testes, ~4s, sem rede
+npm test                       # 313 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -132,7 +132,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 307 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 313 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -366,7 +366,13 @@ flash card" com exatamente essas palavras, e disse que a ligação com o resto d
   dentro da aba. Vocabulário é exceção ao onboarding obrigatório (como Configurações), porque é
   isolado e o usuário quer abri-lo sozinho. `scripts/abrir-vocabulario.sh` sobe o servidor com
   `setsid nohup` (log em `data/servidor.log`) e o deixa ligado.
-**Se mudar:** juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
+- **Intensivo:** "+10 novos hoje" grava `config.extras = {dia, n}`, que vale só naquele dia (amanhã
+  o limite volta ao padrão sem configuração a desfazer). O **treino livre** não toca em `cartoes`
+  nem em `registro`: o FSRS só aprende com a 1ª resposta do dia, e adiantar revisões encurtaria
+  intervalos sem ganho de memória. O treino vive só em `ui.treino`: recarregar a página perde o
+  treino em andamento, e isso é aceitável porque ele não guarda nada.
+**Se mudar:** fazer o treino livre gravar no agendamento infla `reps` e bagunça os intervalos;
+juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
 aqui sem pensar duplica o XP diário de revisão com o Baralho.
 
 ---
@@ -389,7 +395,8 @@ aqui sem pensar duplica o XP diário de revisão com o Baralho.
 | 12 | Baralho interno com FSRS ("um pequeno Anki"): estudo com 4 notas, navegador, adicionar, estatísticas, mesclagem (245 → 272) | pedido: Anki no iPhone sem pagar AnkiMobile |
 | 13 | Briefing com `seenWords`/`candidateWords` (o léxico deixou de ir como "conhecido"); pedidos atendidos em ordem e completados com pacotes já gerados; tela Falar (repetir, dizer, conversa simulada) com autoavaliação; prompt pack-v4 com `roleplay`; recomendações desatualizadas corrigidas (272 → 294). Geração real com pack-v4 conferida: válida na 1ª tentativa, US$ 0,52, ensinou 守门员/传球/进球 | pedido: "o que falta para eu realmente aprender" — diagnóstico achou o bug do futebol e a falta de fala |
 | 14 | Aba **Vocabulário**: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, isolada do resto (sem XP, pacote ou proficiência), com mesclagem entre aparelhos; teste da linha do tempo deixou de depender da data (294 → 306) |
-| 15 | Modo foco `#/vocab?foco=1` (só os flashcards, sem menu nem rodapé; abre sem onboarding), `npm run vocab` e atalho no menu do Linux, instalado em `~/.local/share/applications/mandarim-vocabulario.desktop` (306 → 307) | pedido: abrir só esses flashcards no computador | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
+| 15 | Modo foco `#/vocab?foco=1` (só os flashcards, sem menu nem rodapé; abre sem onboarding), `npm run vocab` e atalho no menu do Linux, instalado em `~/.local/share/applications/mandarim-vocabulario.desktop` (306 → 307) | pedido: abrir só esses flashcards no computador |
+| 16 | Intensivo no Vocabulário: "+10 novos hoje" (limite extra só no dia) e treino livre fora do agendamento (errado volta 4 cartões depois até acertar; "só os que errei") (307 → 313) | pergunta: "só posso estudar uma vez por dia? e se eu quiser um intensivão?" | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
 
 ---
 

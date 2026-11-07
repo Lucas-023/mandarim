@@ -139,12 +139,13 @@ export function filaVocabulario(state, { agora = new Date() } = {}) {
     .sort((a, b) => a.due.localeCompare(b.due)));
 
   const novosFeitos = hojeReg.filter((r) => r.estadoAntes === 'novo').length;
+  const limiteNovos = cfg.novosPorDia + novosExtrasHoje(state, hoje);
   // Ordem da lista do curso; reconhecer antes de produzir.
   const novos = pegar(cartoes
     .filter((c) => c.estado === 'novo')
     .sort((a, b) => POSICAO.get(a.palavra) - POSICAO.get(b.palavra)
       || ORDEM_MODELOS_VOCAB.indexOf(a.modelo) - ORDEM_MODELOS_VOCAB.indexOf(b.modelo)))
-    .slice(0, Math.max(0, cfg.novosPorDia - novosFeitos));
+    .slice(0, Math.max(0, limiteNovos - novosFeitos));
 
   const contagem = {
     novos: novos.length,
@@ -265,4 +266,90 @@ export function estatisticasVocabulario(state, { agora = new Date(), dias = 30 }
       ? formados.reduce((t, c) => t + retencao(Math.max(0, diasEntre(c.ultimaRevisao, hoje)), c.s), 0) / formados.length
       : null,
   };
+}
+
+// ---------------------------------------------------------------- intensivo
+
+/** Novos liberados a mais só para hoje (botão "+10 novos hoje"). */
+export function novosExtrasHoje(state, hoje = dayKey()) {
+  const e = state.vocabulario?.config?.extras;
+  return e && e.dia === hoje ? e.n : 0;
+}
+
+/** Libera `n` cartões novos além do limite, só no dia de hoje. @returns total extra de hoje */
+export function liberarNovosHoje(state, n = 10, { agora = new Date() } = {}) {
+  const v = garantirVocabulario(state);
+  const hoje = dayKey(agora);
+  const atual = novosExtrasHoje(state, hoje);
+  v.config = { ...v.config, extras: { dia: hoje, n: atual + n } };
+  return atual + n;
+}
+
+/**
+ * Treino livre: passar pelos cartões quantas vezes quiser, fora do agendamento.
+ *
+ * NÃO mexe em `cartoes` nem em `registro`, de propósito: o FSRS só aprende com a
+ * 1ª resposta do dia, e adiantar revisões encurtaria intervalos sem ganho de
+ * memória de longo prazo. Aqui é repetição pura para um intensivo; o agendamento
+ * continua cuidando de trazer cada palavra de volta no dia certo.
+ *
+ * @param quais 'todas' | 'estudadas' (já respondidas no agendamento) | 'dificeis' (erradas alguma vez)
+ * @param direcao 'reconhecer' | 'produzir' | 'misturado'
+ */
+export function montarTreino(state, { licoes = null, quais = 'todas', direcao = 'misturado', aleatorio = Math.random } = {}) {
+  const cfg = configVocabulario(state);
+  const ligadas = new Set(licoes || cfg.licoes);
+  const cartoes = new Map((state.vocabulario?.cartoes || []).map((c) => [c.id, c]));
+  const erradas = new Set((state.vocabulario?.registro || []).filter((r) => r.nota === 1).map((r) => r.palavra));
+  const palavras = PALAVRAS.filter((p) => {
+    if (!ligadas.has(p.licao)) return false;
+    const cs = ORDEM_MODELOS_VOCAB.map((m) => cartoes.get(idCartao(p.hanzi, m))).filter(Boolean);
+    if (quais === 'estudadas') return cs.some((c) => c.estado !== 'novo');
+    if (quais === 'dificeis') return erradas.has(p.hanzi) || cs.some((c) => c.lapsos > 0);
+    return true;
+  });
+  const fila = palavras.map((p) => ({
+    palavra: p.hanzi,
+    modelo: direcao === 'misturado' ? (aleatorio() < 0.5 ? 'reconhecer' : 'produzir') : direcao,
+  }));
+  embaralhar(fila, aleatorio);
+  return { fila, total: fila.length, respondidas: 0, acertosDePrimeira: 0, erradas: [], jaErrou: [] };
+}
+
+function embaralhar(lista, aleatorio) {
+  for (let i = lista.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(aleatorio() * (i + 1));
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+  }
+}
+
+/** Quantos cartões depois o errado volta (perto o bastante para fixar, longe o bastante para não decorar a posição). */
+export const VOLTA_APOS = 4;
+
+/**
+ * Responde o primeiro da fila. Acertou: sai. Errou: volta VOLTA_APOS cartões
+ * depois, até acertar. Muda o objeto do treino e o devolve.
+ */
+export function responderTreino(treino, acertou) {
+  const atual = treino.fila.shift();
+  if (!atual) return treino;
+  treino.respondidas += 1;
+  const chave = `${atual.palavra}:${atual.modelo}`;
+  if (acertou) {
+    if (!treino.jaErrou.includes(chave)) treino.acertosDePrimeira += 1;
+  } else {
+    if (!treino.jaErrou.includes(chave)) {
+      treino.jaErrou.push(chave);
+      treino.erradas.push(atual);
+    }
+    treino.fila.splice(Math.min(VOLTA_APOS, treino.fila.length), 0, atual);
+  }
+  return treino;
+}
+
+/** Novo treino só com os cartões errados no anterior (mesma direção de cada um). */
+export function treinoDosErros(treino, aleatorio = Math.random) {
+  const fila = treino.erradas.map((x) => ({ ...x }));
+  embaralhar(fila, aleatorio);
+  return { fila, total: fila.length, respondidas: 0, acertosDePrimeira: 0, erradas: [], jaErrou: [] };
 }

@@ -116,6 +116,12 @@ cartão. **Ver palavras** mostra a lista por lição e o estado de cada cartão.
 Por enquanto a aba é **isolada**: responder não dá XP, não alimenta o pacote do dia e não conta como
 proficiência. Ela não se mistura com o Baralho. A ligação com o resto do app vem depois.
 
+**Intensivo:** o limite de 10 novos por dia não prende ninguém. **"+10 novos hoje"** libera mais
+palavras só naquele dia, e elas entram no agendamento normal. O **treino livre** passa pelos cartões
+quantas vezes você quiser (todas, só as já estudadas ou só as que você já errou; em qualquer
+direção). O que você errar volta 4 cartões depois, até acertar, e no fim dá para treinar só os
+erros. O treino livre **não mexe no agendamento**: as revisões continuam vindo no dia certo.
+
 **Só os flashcards, no computador:** `npm run vocab` sobe o servidor (se não estiver rodando) e abre
 o navegador em `http://127.0.0.1:8000/#/vocab?foco=1`, uma tela só com os cartões, sem menu. O
 atalho **Mandarim — Vocabulário** no menu de aplicativos faz o mesmo (`npm run vocab:atalho` o

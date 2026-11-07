@@ -8,6 +8,7 @@ const { LICOES, PALAVRAS } = await import('../src/core/content/vocabLicoes.js');
 const {
   sincronizarVocabulario, precisaSincronizarVocabulario, filaVocabulario, responderVocabulario, desfazerVocabulario,
   salvarConfigVocabulario, estatisticasVocabulario, suspenderVocabulario,
+  liberarNovosHoje, montarTreino, configVocabulario, responderTreino, treinoDosErros, VOLTA_APOS,
 } = await import('../src/core/vocabulario.js');
 const { emptyState, migrate, Store, memoryBackend } = await import('../src/core/storage.js');
 const { mergeStates } = await import('../src/core/merge.js');
@@ -189,4 +190,95 @@ test('tela: no modo foco oferece voltar ao app completo; fora dele, não', () =>
   view.find(byButton('Abrir o app completo')).click();
   assert.deepEqual(foco.navigations.at(-1), { view: 'dashboard', params: {} });
   assert.doesNotMatch(renderVocabulario(makeCtx()).textContent, /Abrir o app completo/);
+});
+
+// ───────────────────────────── intensivo ─────────────────────────────
+
+test('+10 novos hoje aumenta o limite só no dia, sem mudar o padrão', () => {
+  const s = estado();
+  for (let i = 0; i < 10; i += 1) {
+    const f = filaVocabulario(s, { agora: minutos(INICIO, i) });
+    responderVocabulario(s, f.proximo.id, 4, { agora: minutos(INICIO, i) });
+  }
+  assert.equal(filaVocabulario(s, { agora: minutos(INICIO, 20) }).contagem.novos, 0, 'limite normal esgotado');
+  assert.equal(liberarNovosHoje(s, 10, { agora: INICIO }), 10);
+  assert.equal(filaVocabulario(s, { agora: minutos(INICIO, 20) }).contagem.novos, 10);
+  assert.equal(liberarNovosHoje(s, 10, { agora: INICIO }), 20, 'acumula no mesmo dia');
+  assert.equal(configVocabulario(s).novosPorDia, 10, 'o padrão não muda');
+  // Amanhã volta ao normal (10 novos), sem sobra de ontem.
+  const amanha = filaVocabulario(s, { agora: dias(INICIO, 1) });
+  assert.equal(amanha.contagem.novos, 10);
+});
+
+test('treino livre: errado volta alguns cartões depois até acertar; acerto sai', () => {
+  const s = estado();
+  const t = montarTreino(s, { licoes: [1], direcao: 'reconhecer', aleatorio: () => 0.99 });
+  assert.equal(t.total, 7);
+  const primeiro = t.fila[0];
+  responderTreino(t, false);
+  assert.equal(t.fila.length, 7, 'errado continua na fila');
+  assert.deepEqual(t.fila[VOLTA_APOS], primeiro);
+  while (t.fila.length) responderTreino(t, true);
+  assert.equal(t.acertosDePrimeira, 6);
+  assert.equal(t.respondidas, 8);
+  assert.deepEqual(t.erradas, [primeiro]);
+  const so = treinoDosErros(t);
+  assert.equal(so.total, 1);
+});
+
+test('treino livre não mexe no agendamento nem no registro', () => {
+  const s = estado();
+  const antes = JSON.stringify(s.vocabulario);
+  const t = montarTreino(s, { quais: 'todas' });
+  assert.equal(t.total, 77);
+  while (t.fila.length) responderTreino(t, Math.random() < 0.7);
+  assert.equal(JSON.stringify(s.vocabulario), antes);
+});
+
+test('treino livre filtra estudadas e erradas', () => {
+  const s = estado();
+  assert.equal(montarTreino(s, { quais: 'estudadas' }).total, 0);
+  responderVocabulario(s, '你:reconhecer', 3, { agora: INICIO });
+  responderVocabulario(s, '您:reconhecer', 1, { agora: INICIO });
+  assert.equal(montarTreino(s, { quais: 'estudadas' }).total, 2);
+  const dif = montarTreino(s, { quais: 'dificeis' });
+  assert.deepEqual(dif.fila.map((x) => x.palavra), ['您']);
+});
+
+test('tela: treino livre do início ao fim, com "só os que errei"', () => {
+  const ctx = makeCtx();
+  const inicio = renderVocabulario(ctx);
+  inicio.find(byButton('Começar treino livre')).click();
+  assert.deepEqual(ctx.navigations.at(-1), { view: 'vocab', params: { modo: 'treino' } });
+  ctx.params = { modo: 'treino' };
+  ctx.ui.treino.fila = ctx.ui.treino.fila.slice(0, 2);
+  ctx.ui.treino.total = 2;
+  let view = renderVocabulario(ctx);
+  assert.match(view.textContent, /Treino livre · 0\/2/);
+  view.find(byButton('Mostrar resposta')).click();
+  view = renderVocabulario(ctx);
+  view.find(byButtonLike('Errei')).click();
+  for (let i = 0; i < 3 && ctx.ui.treino.fila.length; i += 1) {
+    renderVocabulario(ctx);
+    ctx.ui.keyHandler({ key: ' ', preventDefault() {} });
+    renderVocabulario(ctx);
+    ctx.ui.keyHandler({ key: ' ', preventDefault() {} });
+  }
+  view = renderVocabulario(ctx);
+  assert.match(view.textContent, /Treino concluído/);
+  assert.match(view.textContent, /1 de primeira/);
+  view.find(byButton('Treinar só os que errei')).click();
+  assert.equal(ctx.ui.treino.total, 1);
+  assert.equal(ctx.state.vocabulario.registro.length, 0, 'nada foi para o agendamento');
+});
+
+test('tela: ao terminar o dia oferece +10 novos e treino livre', () => {
+  const ctx = makeCtx(emptyState(), { modo: 'estudar' });
+  renderVocabulario(ctx);
+  salvarConfigVocabulario(ctx.state, { novosPorDia: 0 });
+  const view = renderVocabulario(ctx);
+  assert.match(view.textContent, /Terminou por hoje/);
+  view.find(byButton('+10 novos hoje')).click();
+  assert.equal(ctx.state.vocabulario.config.extras.n, 10);
+  assert.deepEqual(ctx.navigations.at(-1), { view: 'vocab', params: { modo: 'estudar' } });
 });
