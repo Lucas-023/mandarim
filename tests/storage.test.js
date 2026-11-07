@@ -77,3 +77,23 @@ test('exportJson devolve o estado inteiro legível', () => {
   const parsed = JSON.parse(store.exportJson());
   assert.equal(parsed.schemaVersion, SCHEMA_VERSION);
 });
+
+test('servidor: estado grande é salvo sem keepalive (o navegador recusa keepalive acima de 64 KB)', async () => {
+  const { serverBackend, KEEPALIVE_MAX } = await import('../src/core/serverStore.js');
+  const pedidos = [];
+  const fetchImpl = async (url, opcoes) => {
+    pedidos.push(opcoes);
+    return { ok: true, json: async () => ({}) };
+  };
+  const erros = [];
+  const backend = serverBackend({ fetchImpl, onError: (e) => erros.push(e) });
+  backend.write(JSON.stringify({ pequeno: true }));
+  await backend.flushNow();
+  // 25 mil 汉字 = 75 KB em bytes, embora sejam só 25 mil caracteres.
+  backend.write(JSON.stringify({ grande: '汉'.repeat(25000) }));
+  await backend.flushNow();
+  assert.equal(pedidos[0].keepalive, true, 'pequeno ainda usa keepalive');
+  assert.equal(pedidos[1].keepalive, false, 'grande não usa, contando bytes e não caracteres');
+  assert.ok('汉'.repeat(25000).length < KEEPALIVE_MAX);
+  assert.equal(erros.length, 0);
+});

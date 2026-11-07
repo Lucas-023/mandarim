@@ -7,7 +7,7 @@
 >
 > Resumo em uma linha: Fase 1 completa + geração diária por LLM + repetição espaçada + currículo
 > gramatical + áudio + celular autônomo (GitHub Pages, caixa postal) + baralho FSRS + prática de fala
-> com autoavaliação + aba Vocabulário (flashcards das lições do curso, isolada, com modo foco e intensivo). 313 testes.
+> com autoavaliação + aba Vocabulário (flashcards das lições do curso, isolada, com modo foco e intensivo). 314 testes.
 >
 > Ao concluir um trabalho relevante neste projeto, **atualize `ESTADO-DO-PROJETO.md`** seguindo a
 > §8 daquele arquivo ("Como manter este documento"), que tem os gatilhos, os comandos que regeneram

@@ -11,6 +11,10 @@
  */
 
 const DEBOUNCE_MS = 500;
+/** Margem abaixo dos 64 KB que os navegadores aceitam em pedidos keepalive. */
+export const KEEPALIVE_MAX = 60000;
+/** Tamanho em bytes (o limite é em bytes; cada 汉字 ocupa 3). */
+const bytes = (texto) => new TextEncoder().encode(texto ?? '').length;
 
 export async function probeServer({ fetchImpl = globalThis.fetch, timeoutMs = 1500 } = {}) {
   if (!fetchImpl) return { available: false, reason: 'fetch indisponível' };
@@ -58,7 +62,9 @@ export function serverBackend({ initialRaw = null, fetchImpl = globalThis.fetch,
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body,
-        keepalive: true,
+        // O navegador RECUSA keepalive com corpo acima de 64 KB ("Failed to fetch"),
+        // sem nem chegar ao servidor. O estado passa disso fácil: só usa abaixo do limite.
+        keepalive: bytes(body) < KEEPALIVE_MAX,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onSaved(await res.json().catch(() => ({})));
