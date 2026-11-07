@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-07. Testes: **318 passando** (`npm test`).
+> Última atualização: 2026-11-07. Testes: **321 passando** (`npm test`).
 
 ---
 
@@ -30,7 +30,7 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 318 testes, ~4s, sem rede
+npm test                       # 321 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -132,7 +132,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 318 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 321 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -374,8 +374,13 @@ flash card" com exatamente essas palavras, e disse que a ligação com o resto d
 - **Intensivo:** "+10 novos hoje" grava `config.extras = {dia, n}`, que vale só naquele dia (amanhã
   o limite volta ao padrão sem configuração a desfazer). O **treino livre** não toca em `cartoes`
   nem em `registro`: dezenas de repetições no mesmo dia, com a palavra fresca, mexeriam na
-  estabilidade do FSRS (cada "Errei" conta) sem dizer nada sobre a memória de longo prazo. O treino vive só em `ui.treino`: recarregar a página perde o
-  treino em andamento, e isso é aceitável porque ele não guarda nada.
+  estabilidade do FSRS (cada "Errei" conta) sem dizer nada sobre a memória de longo prazo. O treino
+  em andamento fica em `state.vocabulario.treino` e sobrevive a recarregar (antes vivia em
+  `ui.treino` e se perdia; o usuário pediu). Só o "virado" da carta fica na tela. A mesclagem não
+  leva o treino: é coisa do aparelho.
+- **Irmãos no mesmo dia** (`config.irmaosNoMesmoDia`, padrão falso, como o Baralho): ligado, o
+  "produzir" pode sair no mesmo dia que o "reconhecer". O fim do dia mostra quantos estão esperando
+  (`irmaosEsperando`, contando só os que caberiam no limite de novos) e oferece "Liberar hoje".
 **Se mudar:** fazer o treino livre gravar no agendamento infla `reps` e bagunça os intervalos;
 juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
 aqui sem pensar duplica o XP diário de revisão com o Baralho.
@@ -404,6 +409,7 @@ aqui sem pensar duplica o XP diário de revisão com o Baralho.
 | 16 | Intensivo no Vocabulário: "+10 novos hoje" (limite extra só no dia) e treino livre fora do agendamento (errado volta 4 cartões depois até acertar; "só os que errei") (307 → 313) | pergunta: "só posso estudar uma vez por dia? e se eu quiser um intensivão?" |
 | 17 | Correção: no modo servidor, nenhuma gravação funcionava desde 13/10 (estado > 64 KB com `keepalive`); agora `keepalive` só abaixo de 60 KB, medido em bytes (313 → 314) | relato: "falha ao salvar fetch toda vez que respondo" |
 | 18 | FSRS-4.5 → **FSRS-6** (curto prazo, decaimento w20), fuzz e intervalo máximo de 100 anos como no Anki, "Difícil" nos passos corrigido; vetores oficiais do py-fsrs nos testes. Vale para Baralho e Vocabulário. Cartões antigos seguem com o S/D que tinham (314 → 318) | pedido: "se não for igual ao Anki, deixe igual" |
+| 19 | Treino livre salvo no estado (sobrevive a recarregar, botão "Continuar treino"); opção de reconhecer e produzir no mesmo dia, oferecida no fim do dia (318 → 321) | pergunta: "se eu recarregar vai esquecer tudo? queria treinar com todos sem refazer o reconhecimento" |
 
 ---
 

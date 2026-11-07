@@ -9,7 +9,7 @@ import {
   MODELOS_VOCAB, ORDEM_MODELOS_VOCAB, configVocabulario, salvarConfigVocabulario, filaVocabulario,
   responderVocabulario, desfazerVocabulario, sincronizarVocabulario, precisaSincronizarVocabulario,
   suspenderVocabulario, esquecerVocabulario, estatisticasVocabulario, palavraDe,
-  liberarNovosHoje, novosExtrasHoje, montarTreino, responderTreino, treinoDosErros,
+  liberarNovosHoje, novosExtrasHoje, montarTreino, responderTreino, treinoDosErros, salvarTreino, treinoAtual,
 } from '../core/vocabulario.js';
 import { LICOES } from '../core/content/vocabLicoes.js';
 import { speakButton, playAudio, canSpeak } from './audio.js';
@@ -85,6 +85,7 @@ function maisNovos(ctx) {
 
 function renderIntensivo(ctx) {
   const extras = novosExtrasHoje(ctx.state);
+  const andamento = treinoAtual(ctx.state);
   const escolha = { quais: 'todas', direcao: 'misturado' };
   const opcao = (chave, valores) => h('select', { onChange: (e) => { escolha[chave] = e.target.value; } },
     ...valores.map(([v, rotulo]) => h('option', { value: v, selected: v === escolha[chave] }, rotulo)));
@@ -100,7 +101,13 @@ function renderIntensivo(ctx) {
       opcao('quais', [['todas', 'Todas das lições ligadas'], ['estudadas', 'Só as que já estudei'], ['dificeis', 'Só as que já errei']])),
     h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Direção'),
       opcao('direcao', [['misturado', 'Misturado'], ['reconhecer', '汉字 → português'], ['produzir', 'português → 汉字']])),
-    h('div', { class: 'actions' }, button('Começar treino livre', () => iniciarTreino(ctx, escolha))));
+    andamento?.fila?.length
+      ? h('div', { class: 'callout' },
+          `Treino livre em andamento: faltam ${new Set(andamento.fila.map((x) => `${x.palavra}:${x.modelo}`)).size} de ${andamento.total}. `,
+          button('Continuar treino', () => ctx.go('vocab', { modo: 'treino' })))
+      : null,
+    h('div', { class: 'actions' }, button(andamento?.fila?.length ? 'Começar outro treino' : 'Começar treino livre', () => iniciarTreino(ctx, escolha),
+      { kind: andamento?.fila?.length ? 'secondary' : 'primary' })));
 }
 
 function iniciarTreino(ctx, escolha) {
@@ -109,14 +116,18 @@ function iniciarTreino(ctx, escolha) {
     ctx.toast(escolha.quais === 'dificeis' ? 'Nenhuma palavra errada ainda. 👏' : 'Nenhuma palavra com esse filtro.', 'info');
     return;
   }
-  ctx.ui.treino = { ...treino, escolha, resposta: false };
+  ctx.ui.treinoVirado = null;
+  ctx.commit((s) => salvarTreino(s, { ...treino, escolha }), { silent: true });
   ctx.go('vocab', { modo: 'treino' });
   ctx.render();
 }
 
 function renderOpcoes(ctx) {
   const cfg = configVocabulario(ctx.state);
-  const rascunho = { novosPorDia: cfg.novosPorDia, modelos: { ...cfg.modelos }, licoes: new Set(cfg.licoes), audioAoMostrar: cfg.audioAoMostrar };
+  const rascunho = {
+    novosPorDia: cfg.novosPorDia, modelos: { ...cfg.modelos }, licoes: new Set(cfg.licoes),
+    audioAoMostrar: cfg.audioAoMostrar, irmaosNoMesmoDia: cfg.irmaosNoMesmoDia,
+  };
   return h('details', { class: 'card' },
     h('summary', {}, h('strong', {}, 'Opções')),
     h('label', { class: 'field' },
@@ -134,6 +145,10 @@ function renderOpcoes(ctx) {
       ...ORDEM_MODELOS_VOCAB.map((m) => h('label', { class: 'check' },
         h('input', { type: 'checkbox', checked: cfg.modelos[m], onChange: (e) => { rascunho.modelos[m] = e.target.checked; } }),
         ` ${MODELOS_VOCAB[m].nome} (${MODELOS_VOCAB[m].descricao})`))),
+    h('label', { class: 'check' },
+      h('input', { type: 'checkbox', checked: cfg.irmaosNoMesmoDia, onChange: (e) => { rascunho.irmaosNoMesmoDia = e.target.checked; } }),
+      ' Reconhecer e produzir da mesma palavra podem sair no mesmo dia'),
+    h('small', { class: 'hint' }, 'Desligado (padrão), o "produzir" de uma palavra espera o dia seguinte ao "reconhecer". Ligue num intensivo.'),
     h('label', { class: 'check' },
       h('input', { type: 'checkbox', checked: cfg.audioAoMostrar, onChange: (e) => { rascunho.audioAoMostrar = e.target.checked; } }),
       ' Tocar o áudio ao mostrar a resposta'),
@@ -192,6 +207,15 @@ function renderEstudo(ctx) {
       h('p', {}, f.espera
         ? `Os cartões em aprendizado voltam às ${hora(f.espera)}. Pode fechar o app: o progresso está salvo.`
         : `${est.respondidosHoje} resposta(s) hoje. A revisão de amanhã já está agendada.`),
+      f.irmaosEsperando
+        ? h('div', { class: 'callout' },
+            `${f.irmaosEsperando} cartão(ões) da outra direção estão esperando amanhã, porque a mesma palavra já saiu hoje. `,
+            button('Liberar hoje', () => {
+              ctx.commit((s) => salvarConfigVocabulario(s, { irmaosNoMesmoDia: true }), { silent: true });
+              ctx.toast('Agora reconhecer e produzir da mesma palavra podem sair no mesmo dia (dá para desligar nas Opções).', 'success');
+              ctx.render();
+            }))
+        : null,
       h('div', { class: 'actions' },
         button('+10 novos hoje', () => maisNovos(ctx)),
         button('Treino livre', () => iniciarTreino(ctx, { quais: 'estudadas', direcao: 'misturado' }), { kind: 'secondary' }),
@@ -299,7 +323,12 @@ function renderLista(ctx) {
 
 function renderTreino(ctx) {
   const { ui } = ctx;
-  const t = ui.treino;
+  const t = treinoAtual(ctx.state);
+  const encerrar = () => {
+    ui.treinoVirado = null;
+    ctx.commit((s) => salvarTreino(s, null), { silent: true });
+    ctx.go('vocab');
+  };
   const wrap = h('div', { class: 'stack' });
   if (!t) {
     ui.keyHandler = null;
@@ -317,31 +346,36 @@ function renderTreino(ctx) {
         ? h('p', {}, 'Errou alguma vez: ', ...t.erradas.map((x) => h('span', { class: 'mono-zh' }, `${x.palavra} `)))
         : h('p', {}, 'Nenhum erro. 太棒了！'),
       h('div', { class: 'actions' },
-        t.erradas.length ? button('Treinar só os que errei', () => { ui.treino = { ...treinoDosErros(t), escolha: t.escolha, resposta: false }; ctx.render(); }) : null,
+        t.erradas.length ? button('Treinar só os que errei', () => {
+          ctx.commit((s) => salvarTreino(s, { ...treinoDosErros(t), escolha: t.escolha }), { silent: true });
+          ctx.render();
+        }) : null,
         button('De novo, tudo', () => iniciarTreino(ctx, t.escolha), { kind: t.erradas.length ? 'secondary' : 'primary' }),
-        button('Voltar', () => { ui.treino = null; ctx.go('vocab'); }, { kind: 'ghost' }))));
+        button('Voltar', encerrar, { kind: 'ghost' }))));
     return wrap;
   }
 
   const atual = t.fila[0];
   const p = palavraDe(atual.palavra);
   const cfg = configVocabulario(ctx.state);
+  // "Virado" fica só na tela, preso à resposta da vez: recarregar volta a frente do cartão.
+  const virado = ui.treinoVirado === t.respondidas;
   const mostrar = () => {
-    t.resposta = true;
+    ui.treinoVirado = t.respondidas;
     if (canSpeak() && cfg.audioAoMostrar) playAudio(p.hanzi);
     ctx.render();
   };
   const marcar = (acertou) => {
-    responderTreino(t, acertou);
-    t.resposta = false;
+    ctx.commit((s) => responderTreino(treinoAtual(s), acertou), { silent: true });
+    ui.treinoVirado = null;
     ctx.render();
   };
   ui.keyHandler = (e) => {
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault?.();
-      if (!t.resposta) mostrar(); else marcar(true);
-    } else if (t.resposta && e.key === '1') marcar(false);
-    else if (t.resposta && (e.key === '2' || e.key === '3' || e.key === '4')) marcar(true);
+      if (!virado) mostrar(); else marcar(true);
+    } else if (virado && e.key === '1') marcar(false);
+    else if (virado && (e.key === '2' || e.key === '3' || e.key === '4')) marcar(true);
   };
 
   const feitas = t.total - new Set(t.fila.map((x) => `${x.palavra}:${x.modelo}`)).size;
@@ -350,15 +384,15 @@ function renderTreino(ctx) {
       h('span', { class: 'hint' }, `Treino livre · ${feitas}/${t.total} · ${t.respondidas} respostas`),
       h('span', { class: 'hint' }, MODELOS_VOCAB[atual.modelo].nome)),
     bar((feitas / t.total) * 100),
-    t.resposta ? verso(p) : frente(atual, p),
-    t.resposta
+    virado ? verso(p) : frente(atual, p),
+    virado
       ? h('div', { class: 'baralho-notas' },
           h('button', { class: 'btn baralho-nota baralho-nota-1', onClick: () => marcar(false), title: 'Tecla 1' },
             h('span', { class: 'baralho-nota-int' }, 'volta já'), h('span', {}, 'Errei')),
           h('button', { class: 'btn baralho-nota baralho-nota-3', onClick: () => marcar(true), title: 'Espaço' },
             h('span', { class: 'baralho-nota-int' }, 'sai da fila'), h('span', {}, 'Acertei')))
       : h('div', { class: 'actions' }, button('Mostrar resposta', mostrar)),
-    h('div', { class: 'actions' }, button('Parar', () => { ui.treino = null; ctx.go('vocab'); }, { kind: 'ghost' }))));
+    h('div', { class: 'actions' }, button('Parar', encerrar, { kind: 'ghost', title: 'Encerra e descarta este treino' }))));
   wrap.append(h('p', { class: 'hint' },
     'Treino livre não mexe no agendamento. Atalhos: Espaço mostra (e depois vale "Acertei"), 1 = Errei.'));
   return wrap;

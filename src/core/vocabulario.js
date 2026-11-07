@@ -33,6 +33,12 @@ export const CONFIG_VOCAB = Object.freeze({
   passosReaprender: [10],
   intervaloMaximo: 36500,
   modelos: { reconhecer: true, produzir: true },
+  /**
+   * Falso (padrão, como o Baralho): reconhecer e produzir da mesma palavra em
+   * dias diferentes, para um não "soprar" o outro. Verdadeiro: os dois podem
+   * sair no mesmo dia (útil num intensivo).
+   */
+  irmaosNoMesmoDia: false,
   /** Lições cujos cartões entram no estudo. Desligar esconde, não apaga. */
   licoes: LICOES.map((l) => l.numero),
   adiantarAprendizado: 20,
@@ -127,7 +133,10 @@ export function filaVocabulario(state, { agora = new Date() } = {}) {
   const emPassos = cartoes.filter((c) => c.estado === 'aprendendo' || c.estado === 'reaprendendo');
   const vencidos = emPassos.filter((c) => Date.parse(c.due) <= agora.getTime()).sort((a, b) => a.due.localeCompare(b.due));
 
-  const usados = new Set([...hojeReg.map((r) => r.palavra), ...emPassos.map((c) => c.palavra)]);
+  // Dentro de uma mesma lista nunca vêm os dois irmãos; entre dias, depende da opção.
+  const usados = cfg.irmaosNoMesmoDia
+    ? new Set()
+    : new Set([...hojeReg.map((r) => r.palavra), ...emPassos.map((c) => c.palavra)]);
   const pegar = (lista) => lista.filter((c) => {
     if (usados.has(c.palavra)) return false;
     usados.add(c.palavra);
@@ -165,7 +174,18 @@ export function filaVocabulario(state, { agora = new Date() } = {}) {
     if (Date.parse(prox.due) - agora.getTime() <= cfg.adiantarAprendizado * MINUTO) proximo = prox;
     else if (Date.parse(prox.due) < fimDoDia) espera = prox.due;
   }
-  return { proximo, palavra: proximo ? PALAVRA.get(proximo.palavra) : null, contagem, espera };
+  // Quantos ficaram de fora só pela regra dos irmãos (para a tela oferecer liberar).
+  const respondidasHoje = new Set(hojeReg.map((r) => r.palavra));
+  // Só conta o que entraria de fato: os novos continuam presos ao limite do dia.
+  let irmaosEsperando = 0;
+  if (!cfg.irmaosNoMesmoDia) {
+    const presos = cartoes.filter((c) => respondidasHoje.has(c.palavra));
+    const revPresas = presos.filter((c) => c.estado === 'revisao' && dayKey(new Date(c.due)) <= hoje).length;
+    // Liberados, eles disputam as vagas restantes com os novos que já estão na fila.
+    const vagasNovos = Math.max(0, limiteNovos - novosFeitos);
+    irmaosEsperando = revPresas + Math.min(vagasNovos, presos.filter((c) => c.estado === 'novo').length);
+  }
+  return { proximo, palavra: proximo ? PALAVRA.get(proximo.palavra) : null, contagem, espera, irmaosEsperando };
 }
 
 /** Registra a nota e reagenda. Só isso: sem XP, sem pacote, sem proficiência. */
@@ -346,6 +366,17 @@ export function responderTreino(treino, acertou) {
   }
   return treino;
 }
+
+/**
+ * O treino em andamento fica em state.vocabulario.treino, para sobreviver a
+ * recarregar a página. É só deste aparelho: a mesclagem não o leva.
+ */
+export function salvarTreino(state, treino) {
+  garantirVocabulario(state).treino = treino;
+  return treino;
+}
+
+export const treinoAtual = (state) => state.vocabulario?.treino || null;
 
 /** Novo treino só com os cartões errados no anterior (mesma direção de cada um). */
 export function treinoDosErros(treino, aleatorio = Math.random) {

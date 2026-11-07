@@ -251,14 +251,14 @@ test('tela: treino livre do início ao fim, com "só os que errei"', () => {
   inicio.find(byButton('Começar treino livre')).click();
   assert.deepEqual(ctx.navigations.at(-1), { view: 'vocab', params: { modo: 'treino' } });
   ctx.params = { modo: 'treino' };
-  ctx.ui.treino.fila = ctx.ui.treino.fila.slice(0, 2);
-  ctx.ui.treino.total = 2;
+  ctx.state.vocabulario.treino.fila = ctx.state.vocabulario.treino.fila.slice(0, 2);
+  ctx.state.vocabulario.treino.total = 2;
   let view = renderVocabulario(ctx);
   assert.match(view.textContent, /Treino livre · 0\/2/);
   view.find(byButton('Mostrar resposta')).click();
   view = renderVocabulario(ctx);
   view.find(byButtonLike('Errei')).click();
-  for (let i = 0; i < 3 && ctx.ui.treino.fila.length; i += 1) {
+  for (let i = 0; i < 3 && ctx.state.vocabulario.treino.fila.length; i += 1) {
     renderVocabulario(ctx);
     ctx.ui.keyHandler({ key: ' ', preventDefault() {} });
     renderVocabulario(ctx);
@@ -268,7 +268,7 @@ test('tela: treino livre do início ao fim, com "só os que errei"', () => {
   assert.match(view.textContent, /Treino concluído/);
   assert.match(view.textContent, /1 de primeira/);
   view.find(byButton('Treinar só os que errei')).click();
-  assert.equal(ctx.ui.treino.total, 1);
+  assert.equal(ctx.state.vocabulario.treino.total, 1);
   assert.equal(ctx.state.vocabulario.registro.length, 0, 'nada foi para o agendamento');
 });
 
@@ -281,4 +281,57 @@ test('tela: ao terminar o dia oferece +10 novos e treino livre', () => {
   view.find(byButton('+10 novos hoje')).click();
   assert.equal(ctx.state.vocabulario.config.extras.n, 10);
   assert.deepEqual(ctx.navigations.at(-1), { view: 'vocab', params: { modo: 'estudar' } });
+});
+
+test('treino livre sobrevive a recarregar: fica no estado salvo, com a mesma fila e o mesmo progresso', () => {
+  const store = new Store(memoryBackend());
+  const ctx = makeCtx(store.state);
+  ctx.store = store;
+  ctx.commit = (fn) => { const r = fn(store.state); store.save(); return r; };
+  renderVocabulario(ctx).find(byButton('Começar treino livre')).click();
+  ctx.params = { modo: 'treino' };
+  let view = renderVocabulario(ctx);
+  view.find(byButton('Mostrar resposta')).click();
+  view = renderVocabulario(ctx);
+  view.find(byButtonLike('Acertei')).click();
+  const raw = store.backend.read();
+  // "Recarregar": um Store novo lendo o que foi gravado, e uma interface sem memória.
+  const depois = new Store(memoryBackend(raw));
+  const ctx2 = makeCtx(depois.state, { modo: 'treino' });
+  const tela = renderVocabulario(ctx2);
+  assert.equal(depois.state.vocabulario.treino.respondidas, 1);
+  assert.equal(depois.state.vocabulario.treino.fila.length, 76);
+  assert.match(tela.textContent, /Treino livre · 1\/77/);
+  assert.match(renderVocabulario(makeCtx(depois.state)).textContent, /Treino livre em andamento: faltam 76 de 77/);
+});
+
+test('irmãos no mesmo dia: desligado o produzir espera amanhã e a tela oferece liberar; ligado sai hoje', () => {
+  const s = estado();
+  salvarConfigVocabulario(s, { novosPorDia: 1 });
+  responderVocabulario(s, '你:reconhecer', 4, { agora: INICIO });
+  liberarNovosHoje(s, 1, { agora: INICIO });
+  const f = filaVocabulario(s, { agora: minutos(INICIO, 1) });
+  assert.equal(f.palavra.hanzi, '您', 'o produzir de 你 ficou para amanhã');
+  assert.equal(f.irmaosEsperando, 1);
+  salvarConfigVocabulario(s, { irmaosNoMesmoDia: true });
+  const g = filaVocabulario(s, { agora: minutos(INICIO, 1) });
+  assert.equal(g.proximo.id, '你:produzir');
+  assert.equal(g.irmaosEsperando, 0);
+});
+
+test('tela: fim do dia com irmãos esperando oferece "Liberar hoje"', () => {
+  const ctx = makeCtx(emptyState(), { modo: 'estudar' });
+  renderVocabulario(ctx);
+  // Só os dois cartões de 你 ativos, para o dia acabar logo depois do primeiro.
+  for (const c of ctx.state.vocabulario.cartoes) if (c.palavra !== '你') suspenderVocabulario(ctx.state, c.id);
+  salvarConfigVocabulario(ctx.state, { novosPorDia: 1 });
+  responderVocabulario(ctx.state, '你:reconhecer', 4);
+  assert.doesNotMatch(renderVocabulario(ctx).textContent, /outra direção/, 'sem vaga de novos, liberar não adiantaria');
+  liberarNovosHoje(ctx.state, 1);
+  const view = renderVocabulario(ctx);
+  assert.match(view.textContent, /Terminou por hoje/);
+  assert.match(view.textContent, /1 cartão\(ões\) da outra direção/);
+  view.find(byButton('Liberar hoje')).click();
+  assert.equal(ctx.state.vocabulario.config.irmaosNoMesmoDia, true);
+  assert.equal(filaVocabulario(ctx.state).proximo.id, '你:produzir');
 });

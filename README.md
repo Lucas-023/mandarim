@@ -120,7 +120,11 @@ proficiência. Ela não se mistura com o Baralho. A ligação com o resto do app
 palavras só naquele dia, e elas entram no agendamento normal. O **treino livre** passa pelos cartões
 quantas vezes você quiser (todas, só as já estudadas ou só as que você já errou; em qualquer
 direção). O que você errar volta 4 cartões depois, até acertar, e no fim dá para treinar só os
-erros. O treino livre **não mexe no agendamento**: as revisões continuam vindo no dia certo.
+erros. O treino livre **não mexe no agendamento**: as revisões continuam vindo no dia certo. Um treino em
+andamento fica salvo: recarregar a página ou fechar o app não o perde (botão **Continuar treino**).
+Por padrão, o "produzir" de uma palavra espera o dia seguinte ao "reconhecer". Num intensivo, ligue
+nas Opções **"Reconhecer e produzir da mesma palavra podem sair no mesmo dia"**, ou toque em
+**Liberar hoje** quando o dia acabar.
 
 **Só os flashcards, no computador:** `npm run vocab` sobe o servidor (se não estiver rodando) e abre
 o navegador em `http://127.0.0.1:8000/#/vocab?foco=1`, uma tela só com os cartões, sem menu. O
