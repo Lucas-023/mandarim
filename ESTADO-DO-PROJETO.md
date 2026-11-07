@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-07. Testes: **306 passando** (`npm test`).
+> Última atualização: 2026-11-07. Testes: **307 passando** (`npm test`).
 
 ---
 
@@ -30,12 +30,14 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 306 testes, ~4s, sem rede
+npm test                       # 307 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
 npm run publicar               # monta publicar/ para o GitHub Pages
 npm run seed:demo              # preenche data/state.json com dados FICTÍCIOS
+npm run vocab                  # só os flashcards do Vocabulário (sobe o servidor se preciso)
+npm run vocab:atalho           # põe "Mandarim — Vocabulário" no menu de aplicativos (já instalado)
 npm run timer:install          # timer do systemd: gera o pacote às 5h
 npm run caixa                  # atende os pedidos do celular (caixa postal no GitHub)
 npm run caixa:timer            # timer do systemd: confere a caixa a cada 30 min
@@ -130,7 +132,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 306 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 307 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -360,6 +362,10 @@ flash card" com exatamente essas palavras, e disse que a ligação com o resto d
   mandar essas palavras como `seenWords` no briefing (§3.21).
 - O 你 aparece duas vezes na lição 1 da lista original. Ficou um só, porque dois cartões iguais não
   fazem sentido. Talvez o segundo devesse ser 好 (o título é 你好): falta confirmar com o usuário.
+- **Modo foco** (`#/vocab?foco=1`): esconde menu e rodapé; `go()` mantém o `foco` enquanto se navega
+  dentro da aba. Vocabulário é exceção ao onboarding obrigatório (como Configurações), porque é
+  isolado e o usuário quer abri-lo sozinho. `scripts/abrir-vocabulario.sh` sobe o servidor com
+  `setsid nohup` (log em `data/servidor.log`) e o deixa ligado.
 **Se mudar:** juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
 aqui sem pensar duplica o XP diário de revisão com o Baralho.
 
@@ -382,7 +388,8 @@ aqui sem pensar duplica o XP diário de revisão com o Baralho.
 | 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 245) | pedido: não pagar API, iPhone |
 | 12 | Baralho interno com FSRS ("um pequeno Anki"): estudo com 4 notas, navegador, adicionar, estatísticas, mesclagem (245 → 272) | pedido: Anki no iPhone sem pagar AnkiMobile |
 | 13 | Briefing com `seenWords`/`candidateWords` (o léxico deixou de ir como "conhecido"); pedidos atendidos em ordem e completados com pacotes já gerados; tela Falar (repetir, dizer, conversa simulada) com autoavaliação; prompt pack-v4 com `roleplay`; recomendações desatualizadas corrigidas (272 → 294). Geração real com pack-v4 conferida: válida na 1ª tentativa, US$ 0,52, ensinou 守门员/传球/进球 | pedido: "o que falta para eu realmente aprender" — diagnóstico achou o bug do futebol e a falta de fala |
-| 14 | Aba **Vocabulário**: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, isolada do resto (sem XP, pacote ou proficiência), com mesclagem entre aparelhos; teste da linha do tempo deixou de depender da data (294 → 306) | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
+| 14 | Aba **Vocabulário**: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, isolada do resto (sem XP, pacote ou proficiência), com mesclagem entre aparelhos; teste da linha do tempo deixou de depender da data (294 → 306) |
+| 15 | Modo foco `#/vocab?foco=1` (só os flashcards, sem menu nem rodapé; abre sem onboarding), `npm run vocab` e atalho no menu do Linux, instalado em `~/.local/share/applications/mandarim-vocabulario.desktop` (306 → 307) | pedido: abrir só esses flashcards no computador | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
 
 ---
 

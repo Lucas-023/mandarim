@@ -17,6 +17,8 @@
     "caixa:timer": "bash scripts/instalar-timer.sh --caixa",
     "caixa:timer:remove": "bash scripts/instalar-timer.sh --caixa --remover",
     "publicar": "node scripts/preparar-publicacao.mjs",
-    "seed:demo": "node scripts/semear-demo.mjs"
+    "seed:demo": "node scripts/semear-demo.mjs",
+    "vocab": "bash scripts/abrir-vocabulario.sh",
+    "vocab:atalho": "bash scripts/abrir-vocabulario.sh --atalho"
   }
 }

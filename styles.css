@@ -311,3 +311,8 @@ code {
   .fala-notas { position: sticky; bottom: calc(.5rem + env(safe-area-inset-bottom, 0)); }
   .fala-nota small { display: none; }
 }
+
+/* Modo foco (#/vocab?foco=1): só os flashcards do Vocabulário. */
+body.foco .nav,
+body.foco .footer { display: none; }
+body.foco .view { max-width: 640px; }

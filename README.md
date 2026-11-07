@@ -116,6 +116,13 @@ cartão. **Ver palavras** mostra a lista por lição e o estado de cada cartão.
 Por enquanto a aba é **isolada**: responder não dá XP, não alimenta o pacote do dia e não conta como
 proficiência. Ela não se mistura com o Baralho. A ligação com o resto do app vem depois.
 
+**Só os flashcards, no computador:** `npm run vocab` sobe o servidor (se não estiver rodando) e abre
+o navegador em `http://127.0.0.1:8000/#/vocab?foco=1`, uma tela só com os cartões, sem menu. O
+atalho **Mandarim — Vocabulário** no menu de aplicativos faz o mesmo (`npm run vocab:atalho` o
+recria). O mesmo modo funciona no app publicado: `https://lucas-023.github.io/mandarim/#/vocab?foco=1`.
+O progresso do computador e o do celular são separados, cada um no seu aparelho, até que se use a
+mesclagem em Configurações.
+
 Para trocar ou acrescentar palavras, edite `vocabLicoes.js`. Palavra nova ganha cartão ao abrir a
 aba. Palavra removida tem o cartão escondido, e o histórico volta se ela voltar.
 

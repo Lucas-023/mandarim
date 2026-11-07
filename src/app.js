@@ -152,6 +152,8 @@ function parseHash() {
 }
 
 function go(view, params = {}) {
+  // Modo foco (só os flashcards do Vocabulário) continua enquanto se navega dentro da aba.
+  if (ui.foco && view === 'vocab') params = { ...params, foco: '1' };
   const query = new URLSearchParams(params).toString();
   location.hash = `#/${view}${query ? `?${query}` : ''}`;
 }
@@ -206,12 +208,17 @@ function render() {
   // Gravação de comparação esquecida aberta não pode segurar o microfone ao trocar de tela.
   soltarMicrofone();
 
-  // Onboarding é obrigatório antes de qualquer outra tela, exceto Configurações:
-  // num aparelho novo é lá que se cola a chave ou se restaura um backup.
-  if (!state.profile.onboardingDone && !['onboarding', 'settings'].includes(current.view)) {
+  // Onboarding é obrigatório antes de qualquer outra tela, exceto Configurações
+  // (num aparelho novo é lá que se cola a chave ou se restaura um backup) e
+  // Vocabulário, que é isolado do resto e pode ser aberto sozinho no computador.
+  if (!state.profile.onboardingDone && !['onboarding', 'settings', 'vocab'].includes(current.view)) {
     current = { view: 'onboarding', params: {} };
     location.hash = '#/onboarding';
   }
+
+  // Modo foco: #/vocab?foco=1 mostra só os flashcards, sem menu, rodapé nem avisos.
+  ui.foco = current.view === 'vocab' && current.params.foco === '1';
+  document.body.classList.toggle('foco', ui.foco);
 
   renderNav();
   clear(main);
@@ -283,6 +290,11 @@ function render() {
     banners.append(h('div', { class: 'banner' },
       'Você ainda não concluiu o nivelamento. Até lá, as habilidades aparecem como não avaliadas. ',
       h('button', { class: 'link', onClick: () => go('placement') }, 'Fazer agora')));
+  }
+
+  if (ui.foco) {
+    // Só o que é erro de verdade (nada será salvo) sobrevive no modo foco.
+    for (const b of [...banners.children]) if (!b.classList.contains('banner-error')) b.remove();
   }
 
   try {

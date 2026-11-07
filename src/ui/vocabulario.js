@@ -50,7 +50,8 @@ function renderInicio(ctx) {
       : null,
     h('div', { class: 'actions' },
       button('Estudar agora', () => ctx.go('vocab', { modo: 'estudar' }), { disabled: !f.proximo }),
-      button('Ver palavras', () => ctx.go('vocab', { modo: 'lista' }), { kind: 'secondary' }))));
+      button('Ver palavras', () => ctx.go('vocab', { modo: 'lista' }), { kind: 'secondary' }),
+      ctx.ui.foco ? button('Abrir o app completo', () => ctx.go('dashboard'), { kind: 'ghost' }) : null)));
 
   const stat = (valor, rotulo) => h('div', { class: 'stat' }, h('span', { class: 'stat-value' }, String(valor)), h('span', { class: 'stat-label' }, rotulo));
   wrap.append(card('Progresso por lição',

@@ -181,3 +181,12 @@ test('tela: lista mostra todas as palavras por lição', () => {
   const view = renderVocabulario(makeCtx(emptyState(), { modo: 'lista' }));
   for (const p of PALAVRAS) assert.ok(view.textContent.includes(p.hanzi), p.hanzi);
 });
+
+test('tela: no modo foco oferece voltar ao app completo; fora dele, não', () => {
+  const foco = makeCtx();
+  foco.ui.foco = true;
+  const view = renderVocabulario(foco);
+  view.find(byButton('Abrir o app completo')).click();
+  assert.deepEqual(foco.navigations.at(-1), { view: 'dashboard', params: {} });
+  assert.doesNotMatch(renderVocabulario(makeCtx()).textContent, /Abrir o app completo/);
+});
