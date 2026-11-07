@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-10-20. Testes: **294 passando** (`npm test`).
+> Última atualização: 2026-11-07. Testes: **306 passando** (`npm test`).
 
 ---
 
@@ -20,8 +20,9 @@ local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm in
 para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
-Tamanho atual:  núcleo 6.639 linhas · interface 4.313 · servidor/scripts 1.363 · testes 4.344
-Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 50 pontos de gramática
+Tamanho atual:  núcleo 7.056 linhas · interface 4.568 · servidor/scripts 1.363 · testes 4.530
+Conteúdo:       154 palavras no léxico base · 77 palavras das lições do curso (aba Vocabulário) ·
+                26 questões de nivelamento · 50 pontos de gramática
 ```
 
 ### Como rodar
@@ -29,7 +30,7 @@ Conteúdo:       154 palavras no léxico base · 26 questões de nivelamento · 
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 294 testes, ~4s, sem rede
+npm test                       # 306 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -92,6 +93,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   merge.js              mesclagem de dois aparelhos sem perder histórico
   fsrs.js               FSRS-4.5: estabilidade, dificuldade, retenção (o algoritmo do Anki)
   baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer
+  vocabulario.js        aba Vocabulário: flashcards das lições do curso, isolada do resto (sem XP/pacote/proficiência)
   fala.js               prática de fala: fila de frases, autoavaliação, conversa simulada (sem proficiência)
   caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
@@ -119,15 +121,16 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/lexicon.js    154 entradas + registro em tempo de execução
   content/questions.js  26 itens do nivelamento
   content/grammar.js    50 estruturas em ordem de progressão
+  content/vocabLicoes.js  77 palavras das lições 1–5 do curso (de vocab.png), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar)
+                        activities, history, settings, audio, recorder, geracao, caixa, baralho, vocabulario, falar)
 tools/generate.js       gerador por linha de comando
 tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  20 arquivos, 294 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 306 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -143,7 +146,7 @@ A ordem aqui é de importância, não cronológica. Cada item diz **o que foi de
 O ambiente onde o projeto foi escrito **não tinha acesso ao registro npm**. Em vez de ficar
 bloqueado, o projeto virou ES modules puros, que rodam no navegador e no `node --test` sem
 transpilação. Efeito colateral bom: o app abre em qualquer máquina, e a pasta publicada tem ~365 KB
-(50 arquivos). O número exato sai de `npm run publicar`.
+(50 arquivos); em 2026-11-07, 506 KB em 60 arquivos. O número exato sai de `npm run publicar`.
 **Se mudar:** qualquer dependência quebra o modo celular (o service worker lista arquivos locais) e
 obriga build no workflow do GitHub Pages.
 
@@ -342,6 +345,24 @@ dizer a partir do português (recuperação ativa falada) e conversa simulada. D
 **Se mudar:** dar evidência de habilidade pela autoavaliação viola §3.2; guardar as gravações exige
 cota e limpeza que não existem.
 
+### 3.24 Aba Vocabulário: baralho próprio, isolado de propósito
+
+O usuário trouxe a lista de vocabulário do curso (`vocab.png`, lições 1–5) e pediu "uma aba apenas de
+flash card" com exatamente essas palavras, e disse que a ligação com o resto do app vem depois.
+- **Separado do Baralho** (`state.vocabulario`, não `state.deck`): o Baralho é alimentado por
+  rascunhos aprovados. Colocar a lista ali misturaria as palavras do curso com as do pacote diário, e
+  o usuário pediu uma aba só com elas. O agendamento é o mesmo: `vocabulario.js` reaproveita
+  `agendar`/`previsoes` de `baralho.js`, sem cópia do FSRS.
+- **Conteúdo fixo no código** (`content/vocabLicoes.js`), com o cartão guardando só o agendamento
+  (id `汉字:modelo`). Corrigir uma tradução no arquivo muda o cartão sem perder o progresso.
+- **Sem XP, sem `schedule.js`, sem `skillEvidence`**, com teste cobrindo. A ligação foi adiada pelo
+  usuário. Quando vier, o caminho natural é a ponte que o Baralho já tem com `schedule.js` (§3.20) e
+  mandar essas palavras como `seenWords` no briefing (§3.21).
+- O 你 aparece duas vezes na lição 1 da lista original. Ficou um só, porque dois cartões iguais não
+  fazem sentido. Talvez o segundo devesse ser 好 (o título é 你好): falta confirmar com o usuário.
+**Se mudar:** juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
+aqui sem pensar duplica o XP diário de revisão com o Baralho.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -361,6 +382,7 @@ cota e limpeza que não existem.
 | 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 245) | pedido: não pagar API, iPhone |
 | 12 | Baralho interno com FSRS ("um pequeno Anki"): estudo com 4 notas, navegador, adicionar, estatísticas, mesclagem (245 → 272) | pedido: Anki no iPhone sem pagar AnkiMobile |
 | 13 | Briefing com `seenWords`/`candidateWords` (o léxico deixou de ir como "conhecido"); pedidos atendidos em ordem e completados com pacotes já gerados; tela Falar (repetir, dizer, conversa simulada) com autoavaliação; prompt pack-v4 com `roleplay`; recomendações desatualizadas corrigidas (272 → 294). Geração real com pack-v4 conferida: válida na 1ª tentativa, US$ 0,52, ensinou 守门员/传球/进球 | pedido: "o que falta para eu realmente aprender" — diagnóstico achou o bug do futebol e a falta de fala |
+| 14 | Aba **Vocabulário**: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, isolada do resto (sem XP, pacote ou proficiência), com mesclagem entre aparelhos; teste da linha do tempo deixou de depender da data (294 → 306) | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
 
 ---
 
@@ -374,6 +396,12 @@ não usa esse dado. Então um cartão revisado no Anki continua aparecendo como 
 **Caminho:** mapear nota do Anki → `ref` do agendador (provavelmente pela frente do cartão) e, ao ler
 o histórico, empurrar o `due` dos itens correspondentes. Cuidado: não inventar `reps`/`ease` a
 partir de dados que o add-on não dá.
+
+### 5.0 Ligar a aba Vocabulário ao resto do app
+Hoje ela é isolada (§3.24). O que falta, quando o usuário quiser: XP por sessão (sem duplicar o
+`review_session` do Baralho no mesmo dia), ponte com `schedule.js` como a do Baralho, palavras
+estudadas aqui entrando como `seenWords` no briefing, resumo no Painel. Lições 6+ entram como
+objetos novos em `content/vocabLicoes.js`. Confirmar com o usuário o 你 repetido da lição 1.
 
 ### 5.1b Baralho: próximos passos naturais
 `src/core/baralho.js` cobre o essencial do Anki. O que falta, em ordem de valor: otimizar os pesos do
@@ -485,6 +513,10 @@ Registradas para ninguém cair de novo.
     de comando do bash). Para parar o servidor de teste, use o PID (`pgrep -af`, `kill <pid>`).
 20. **`npm run generate --state=... --out=...` ainda grava o briefing em `data/outbox/`** do projeto.
     Ao testar com dados temporários, apague a cópia depois.
+21. **Teste com data fixa contra dados de demonstração relativos a hoje.** `buildDemoState()` data o
+    nivelamento a partir de *agora*. Um teste que gravava uma reavaliação em `2026-10-20` passou a
+    falhar quando o calendário passou dessa data (a reavaliação ficava "antes" do nivelamento). Ao
+    misturar dados de demonstração com datas, use o relógio atual ou datas relativas.
 
 ---
 

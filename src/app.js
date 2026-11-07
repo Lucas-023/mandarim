@@ -24,6 +24,7 @@ import { renderSettings } from './ui/settings.js';
 import { renderPack } from './ui/pack.js';
 import { renderBaralho } from './ui/baralho.js';
 import { renderFalar } from './ui/falar.js';
+import { renderVocabulario } from './ui/vocabulario.js';
 import { soltarMicrofone } from './ui/recorder.js';
 import { sincronizarCartoes, precisaSincronizar } from './core/baralho.js';
 import { sincronizarCaixa, agendarEnvio, descarregarEnvio } from './ui/caixa.js';
@@ -31,6 +32,7 @@ import { sincronizarCaixa, agendarEnvio, descarregarEnvio } from './ui/caixa.js'
 const VIEWS = {
   dashboard: { label: 'Painel', render: renderDashboard },
   study: { label: 'Estudar', render: renderStudy },
+  vocab: { label: 'Vocabulário', render: renderVocabulario },
   deck: { label: 'Baralho', render: renderBaralho },
   speak: { label: 'Falar', render: renderFalar },
   cards: { label: 'Criar cartões', render: renderCards },

@@ -83,6 +83,7 @@ todas as telas.
 | Geração do pacote pelo próprio celular, com chave da Claude API no aparelho | ✅ |
 | Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
 | Baralho interno estilo Anki (FSRS, 4 notas, passos, navegador, estatísticas), sem precisar do Anki | ✅ |
+| Aba Vocabulário: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, separada do resto | ✅ (sem XP nem ligação com o pacote, por ora) |
 | Prática de fala: repetir em voz alta, dizer a partir do português, conversa simulada; gravar e comparar com o modelo | ✅ (autoavaliação, sem nota) |
 | Service worker para funcionar em modo avião | ✅ |
 | Mesclagem de dois aparelhos sem perder histórico | ✅ |
@@ -102,6 +103,21 @@ todas as telas.
 - **Importação de PDF/documentos/áudio**: só entrada por texto colado.
 - Fase 2 (duplicatas via Anki, relatórios semanais automáticos) e Fase 3 (áudio, conversa simulada)
   não foram implementadas.
+
+## Vocabulário: as palavras das lições do curso
+
+Aba **Vocabulário**. Flashcards só com as 77 palavras das lições 1–5 do livro do curso
+(`src/core/content/vocabLicoes.js`, transcrito de `vocab.png`). Cada palavra tem dois cartões,
+**reconhecer** (汉字 → português) e **produzir** (português → 汉字), com o mesmo estudo do Baralho:
+FSRS, os quatro botões, passos de 1 e 10 min, desfazer e os mesmos atalhos. Os cartões novos entram
+na ordem da lista, 10 por dia por padrão. Nas opções dá para ligar e desligar lições e tipos de
+cartão. **Ver palavras** mostra a lista por lição e o estado de cada cartão.
+
+Por enquanto a aba é **isolada**: responder não dá XP, não alimenta o pacote do dia e não conta como
+proficiência. Ela não se mistura com o Baralho. A ligação com o resto do app vem depois.
+
+Para trocar ou acrescentar palavras, edite `vocabLicoes.js`. Palavra nova ganha cartão ao abrir a
+aba. Palavra removida tem o cartão escondido, e o histórico volta se ela voltar.
 
 ## Baralho: um pequeno Anki dentro do app
 

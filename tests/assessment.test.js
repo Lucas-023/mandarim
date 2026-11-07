@@ -95,10 +95,13 @@ test('concluir a reavaliação concede o XP próprio e guarda o retrato das habi
 });
 
 test('a linha do tempo junta nivelamentos e reavaliações em ordem', () => {
+  // Os dados de demonstração são datados a partir de hoje: a reavaliação precisa ser "agora",
+  // não uma data fixa (com data fixa o teste quebrou quando o calendário passou dela).
   const s = buildDemoState();
-  const aval = buildWeeklyAssessment(s, { count: 7, seed: 2, today: '2026-10-20' });
-  const g = gradeExercise(s, aval, Object.fromEntries(aval.items.map((i) => [i.id, i.answer])), { at: '2026-10-20T10:00:00' });
-  recordAssessment(s, { exercise: aval, graded: g, at: '2026-10-20T10:00:00' });
+  const agora = new Date().toISOString();
+  const aval = buildWeeklyAssessment(s, { count: 7, seed: 2, today: agora.slice(0, 10) });
+  const g = gradeExercise(s, aval, Object.fromEntries(aval.items.map((i) => [i.id, i.answer])), { at: agora });
+  recordAssessment(s, { exercise: aval, graded: g, at: agora });
   const linha = skillTimeline(s);
   assert.equal(linha.length, 2);
   assert.deepEqual(linha.map((p) => p.tipo), ['nivelamento', 'reavaliação']);

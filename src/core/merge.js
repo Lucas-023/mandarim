@@ -155,6 +155,28 @@ export function mergeStates(aBruto, bBruto) {
   };
   relatorio.adicionados.baralho = cartoesNovos + registro.novos;
 
+  // Vocabulário das lições: mesma regra do baralho (id do cartão é a palavra).
+  const cartoesVoc = new Map();
+  let vocNovos = 0;
+  for (const estado of [a, b]) {
+    for (const c of estado.vocabulario?.cartoes || []) {
+      const atual = cartoesVoc.get(c.id);
+      if (!atual) {
+        cartoesVoc.set(c.id, c);
+        if (estado === b) vocNovos += 1;
+      } else if (String(c.ultimaRevisao || '') > String(atual.ultimaRevisao || '')) {
+        cartoesVoc.set(c.id, c);
+      }
+    }
+  }
+  const registroVoc = unirPor(a.vocabulario?.registro, b.vocabulario?.registro, (x) => x.id);
+  resultado.vocabulario = {
+    cartoes: [...cartoesVoc.values()],
+    registro: ordenarPorData(registroVoc.lista).map(({ anterior, ...r }) => r),
+    config: recente.vocabulario?.config || antigo.vocabulario?.config || {},
+  };
+  relatorio.adicionados.vocabulario = vocNovos + registroVoc.novos;
+
   // Sessão em andamento: a mais recente das duas (ou a que existir).
   const sessaoA = a.activeSession;
   const sessaoB = b.activeSession;
