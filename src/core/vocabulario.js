@@ -8,7 +8,7 @@
  *   - responder NÃO dá XP, NÃO mexe no agendador do pacote (schedule.js) e
  *     NÃO cria evidência de habilidade (skills.js);
  *   - o agendamento é o mesmo do Baralho: reaproveita `agendar`/`previsoes`
- *     (FSRS, passos em minutos, memória muda só na 1ª resposta do dia).
+ *     (FSRS-6, passos em minutos, fuzz nos intervalos, como o Anki).
  *
  * Estado: state.vocabulario = { cartoes, registro, config }. O cartão guarda só
  * o agendamento; id = `${hanzi}:${modelo}`. Se uma palavra sair da lista, o
@@ -31,7 +31,7 @@ export const CONFIG_VOCAB = Object.freeze({
   retencaoDesejada: 0.9,
   passos: [1, 10],
   passosReaprender: [10],
-  intervaloMaximo: 3650,
+  intervaloMaximo: 36500,
   modelos: { reconhecer: true, produzir: true },
   /** Lições cujos cartões entram no estudo. Desligar esconde, não apaga. */
   licoes: LICOES.map((l) => l.numero),
@@ -288,9 +288,9 @@ export function liberarNovosHoje(state, n = 10, { agora = new Date() } = {}) {
 /**
  * Treino livre: passar pelos cartões quantas vezes quiser, fora do agendamento.
  *
- * NÃO mexe em `cartoes` nem em `registro`, de propósito: o FSRS só aprende com a
- * 1ª resposta do dia, e adiantar revisões encurtaria intervalos sem ganho de
- * memória de longo prazo. Aqui é repetição pura para um intensivo; o agendamento
+ * NÃO mexe em `cartoes` nem em `registro`, de propósito: repetir dezenas de vezes
+ * no mesmo dia, com a palavra ainda fresca, encurtaria a estabilidade do FSRS
+ * (cada "Errei" conta) sem dizer nada sobre a memória de longo prazo. Aqui é repetição pura para um intensivo; o agendamento
  * continua cuidando de trazer cada palavra de volta no dia certo.
  *
  * @param quais 'todas' | 'estudadas' (já respondidas no agendamento) | 'dificeis' (erradas alguma vez)

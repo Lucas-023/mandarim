@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-07. Testes: **314 passando** (`npm test`).
+> Última atualização: 2026-11-07. Testes: **318 passando** (`npm test`).
 
 ---
 
@@ -30,7 +30,7 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 314 testes, ~4s, sem rede
+npm test                       # 318 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -93,7 +93,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   serverStore.js        persistência via /api, detecção de dados órfãos
   mediaStore.js         áudios: arquivo no servidor OU IndexedDB
   merge.js              mesclagem de dois aparelhos sem perder histórico
-  fsrs.js               FSRS-4.5: estabilidade, dificuldade, retenção (o algoritmo do Anki)
+  fsrs.js               FSRS-6: estabilidade, dificuldade, retenção, curto prazo, fuzz (o algoritmo do Anki atual)
   baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer
   vocabulario.js        aba Vocabulário: flashcards das lições do curso, isolada do resto (sem XP/pacote/proficiência)
   fala.js               prática de fala: fila de frases, autoavaliação, conversa simulada (sem proficiência)
@@ -132,7 +132,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 314 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 318 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -290,19 +290,24 @@ do PC gera o pacote no dia errado.
 
 O usuário usa iPhone, onde o Anki é pago (AnkiMobile) e não aceita AnkiConnect, e pediu "um pequeno
 Anki dentro do app". Decisões:
-- **FSRS-4.5 com os pesos padrão**, implementado das fórmulas publicadas (não é código do Anki).
+- **FSRS-6 com os pesos padrão** (era FSRS-4.5 até 2026-11-07; o usuário pediu "igual ao Anki").
+  Fórmulas e pesos conferidos contra `py-fsrs` (`fsrs/scheduler.py`), e os vetores de
+  `tests/test_basic.py` de lá estão copiados em `baralho.test.js`: se falharem, deixou de ser igual.
   Otimizar os pesos exige centenas de revisões que ainda não existem.
 - **Conteúdo = rascunho aprovado** (`cardDrafts` approved/exported); o cartão guarda só o
   agendamento (`state.deck.cartoes`, id `rascunho:modelo`). Editar o rascunho muda o cartão sem cópia.
   Rejeitar apaga os cartões; desligar um tipo de cartão só esconde (o histórico volta).
-- **Memória muda só na 1ª resposta do dia** (regra do FSRS-4.5); passos em minutos como no Anki;
-  irmãos (reconhecer/produzir da mesma palavra) nunca no mesmo dia.
+- **Toda resposta mexe na memória**: no mesmo dia, pela fórmula de curto prazo do FSRS-6 (w17–w19).
+  Passos em minutos como no Anki; "Difícil" no 1º passo = média dos dois primeiros, depois repete o
+  passo atual. Irmãos (reconhecer/produzir da mesma palavra) nunca no mesmo dia.
+- **Fuzz como o do Anki** (mesmas faixas: 15%/10%/5%, a partir de 2,5 dias), mantendo
+  Difícil < Bom < Fácil. O sorteio vem do id do cartão + nº de revisões, então a previsão no botão
+  bate com o que acontece. `cfg.fuzz = false` desliga (só os testes usam). Intervalo máximo 36500 dias.
 - **Autoavaliação não é proficiência:** responder dá XP (`review_session`, uma vez por dia, a partir
   de 10 respostas) e nunca cria `skillEvidence`. Teste cobre.
 - **Ponte com o pacote diário:** se a palavra já está em `schedule.js`, a resposta conta lá, uma vez
   por dia (os dois irmãos não aceleram o item duas vezes). Palavra que o pacote nunca viu não é criada.
 - **Desfazer** guarda o retrato anterior nas últimas 50 respostas; a mesclagem descarta esses retratos.
-- Sem *fuzz* nos intervalos (o Anki espalha ±alguns dias): mantém o comportamento previsível e testável.
 **Se mudar:** dar evidência de habilidade por revisão viola §3.2; copiar o conteúdo para o cartão
 cria duas fontes que divergem ao editar.
 
@@ -368,8 +373,8 @@ flash card" com exatamente essas palavras, e disse que a ligação com o resto d
   `setsid nohup` (log em `data/servidor.log`) e o deixa ligado.
 - **Intensivo:** "+10 novos hoje" grava `config.extras = {dia, n}`, que vale só naquele dia (amanhã
   o limite volta ao padrão sem configuração a desfazer). O **treino livre** não toca em `cartoes`
-  nem em `registro`: o FSRS só aprende com a 1ª resposta do dia, e adiantar revisões encurtaria
-  intervalos sem ganho de memória. O treino vive só em `ui.treino`: recarregar a página perde o
+  nem em `registro`: dezenas de repetições no mesmo dia, com a palavra fresca, mexeriam na
+  estabilidade do FSRS (cada "Errei" conta) sem dizer nada sobre a memória de longo prazo. O treino vive só em `ui.treino`: recarregar a página perde o
   treino em andamento, e isso é aceitável porque ele não guarda nada.
 **Se mudar:** fazer o treino livre gravar no agendamento infla `reps` e bagunça os intervalos;
 juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
@@ -394,10 +399,11 @@ aqui sem pensar duplica o XP diário de revisão com o Baralho.
 | 11 | Configurações acessíveis antes do onboarding; caixa postal no GitHub para gerar pelo plano do Claude no PC (223 → 245) | pedido: não pagar API, iPhone |
 | 12 | Baralho interno com FSRS ("um pequeno Anki"): estudo com 4 notas, navegador, adicionar, estatísticas, mesclagem (245 → 272) | pedido: Anki no iPhone sem pagar AnkiMobile |
 | 13 | Briefing com `seenWords`/`candidateWords` (o léxico deixou de ir como "conhecido"); pedidos atendidos em ordem e completados com pacotes já gerados; tela Falar (repetir, dizer, conversa simulada) com autoavaliação; prompt pack-v4 com `roleplay`; recomendações desatualizadas corrigidas (272 → 294). Geração real com pack-v4 conferida: válida na 1ª tentativa, US$ 0,52, ensinou 守门员/传球/进球 | pedido: "o que falta para eu realmente aprender" — diagnóstico achou o bug do futebol e a falta de fala |
-| 14 | Aba **Vocabulário**: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, isolada do resto (sem XP, pacote ou proficiência), com mesclagem entre aparelhos; teste da linha do tempo deixou de depender da data (294 → 306) |
+| 14 | Aba **Vocabulário**: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, isolada do resto (sem XP, pacote ou proficiência), com mesclagem entre aparelhos; teste da linha do tempo deixou de depender da data (294 → 306) | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
 | 15 | Modo foco `#/vocab?foco=1` (só os flashcards, sem menu nem rodapé; abre sem onboarding), `npm run vocab` e atalho no menu do Linux, instalado em `~/.local/share/applications/mandarim-vocabulario.desktop` (306 → 307) | pedido: abrir só esses flashcards no computador |
 | 16 | Intensivo no Vocabulário: "+10 novos hoje" (limite extra só no dia) e treino livre fora do agendamento (errado volta 4 cartões depois até acertar; "só os que errei") (307 → 313) | pergunta: "só posso estudar uma vez por dia? e se eu quiser um intensivão?" |
-| 17 | Correção: no modo servidor, nenhuma gravação funcionava desde 13/10 (estado > 64 KB com `keepalive`); agora `keepalive` só abaixo de 60 KB, medido em bytes (313 → 314) | relato: "falha ao salvar fetch toda vez que respondo" | pedido: "uma aba só de flash card com todas essas palavras; depois liga com o resto" |
+| 17 | Correção: no modo servidor, nenhuma gravação funcionava desde 13/10 (estado > 64 KB com `keepalive`); agora `keepalive` só abaixo de 60 KB, medido em bytes (313 → 314) | relato: "falha ao salvar fetch toda vez que respondo" |
+| 18 | FSRS-4.5 → **FSRS-6** (curto prazo, decaimento w20), fuzz e intervalo máximo de 100 anos como no Anki, "Difícil" nos passos corrigido; vetores oficiais do py-fsrs nos testes. Vale para Baralho e Vocabulário. Cartões antigos seguem com o S/D que tinham (314 → 318) | pedido: "se não for igual ao Anki, deixe igual" |
 
 ---
 
@@ -421,7 +427,7 @@ objetos novos em `content/vocabLicoes.js`. Confirmar com o usuário o 你 repeti
 ### 5.1b Baralho: próximos passos naturais
 `src/core/baralho.js` cobre o essencial do Anki. O que falta, em ordem de valor: otimizar os pesos do
 FSRS com o histórico (`state.deck.registro` já guarda nota, data, S e D de cada resposta — precisa de
-centenas de revisões antes); *fuzz* nos intervalos; tipo de cartão "completar a frase" usando o
+centenas de revisões antes); tipo de cartão "completar a frase" usando o
 exemplo; mapa de calor de dias estudados. Cuidado: nada disso pode virar evidência de proficiência.
 
 ### 5.2 Currículo gramatical acaba em 50 pontos
@@ -539,6 +545,13 @@ Registradas para ninguém cair de novo.
     gravar em silêncio: só aparecia o aviso de erro, e o `state.json` ficou parado nessa data. Hoje
     `keepalive` só vale abaixo de `KEEPALIVE_MAX` (60 KB, medido em **bytes**, porque cada 汉字 ocupa
     3). A caixa postal já fazia isso. Qualquer `fetch` novo com `keepalive` precisa do mesmo cuidado.
+
+23. **Executar código baixado da internet é bloqueado** pelo modo automático do Claude Code (rodar o
+    `py-fsrs` baixado para comparar foi negado). Para conferir contra uma referência, **leia** os
+    valores esperados dos testes dela e copie-os como vetores nos testes daqui, como em
+    `baralho.test.js`.
+24. **Inserir linha numa tabela casando com o fim de outra linha** quebra a tabela se a linha casada
+    não terminar ali (a §4 perdeu o fim da linha 14 assim). Case com a linha inteira, `\n` incluso.
 
 ---
 

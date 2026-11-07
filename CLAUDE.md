@@ -6,8 +6,8 @@
 > Comece por lá para não reimplementar o que existe nem repetir erro já resolvido.
 >
 > Resumo em uma linha: Fase 1 completa + geração diária por LLM + repetição espaçada + currículo
-> gramatical + áudio + celular autônomo (GitHub Pages, caixa postal) + baralho FSRS + prática de fala
-> com autoavaliação + aba Vocabulário (flashcards das lições do curso, isolada, com modo foco e intensivo). 314 testes.
+> gramatical + áudio + celular autônomo (GitHub Pages, caixa postal) + baralho FSRS-6 (igual ao Anki) + prática de fala
+> com autoavaliação + aba Vocabulário (flashcards das lições do curso, isolada, com modo foco e intensivo). 318 testes.
 >
 > Ao concluir um trabalho relevante neste projeto, **atualize `ESTADO-DO-PROJETO.md`** seguindo a
 > §8 daquele arquivo ("Como manter este documento"), que tem os gatilhos, os comandos que regeneram

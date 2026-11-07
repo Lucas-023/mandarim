@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  PESOS_PADRAO, retencao, intervaloPara, memoriaInicial, revisar, estabilidadeAposErro,
+  PESOS_PADRAO, retencao, intervaloPara, memoriaInicial, revisar, estabilidadeAposErro, faixaFuzz,
 } from '../src/core/fsrs.js';
 import {
-  configBaralho, sincronizarCartoes, precisaSincronizar, agendar, previsoes, fila, responder, desfazer,
+  configBaralho, sincronizarCartoes, precisaSincronizar, agendar, previsoes, rotuloIntervalo, fila, responder, desfazer,
   suspender, esquecer, salvarConfig, estatisticas, SANGUESSUGA, REVISOES_PARA_XP,
 } from '../src/core/baralho.js';
 import { emptyState, migrate } from '../src/core/storage.js';
@@ -64,26 +64,94 @@ test('FSRS: lembrar aumenta a estabilidade, esquecer nunca a aumenta', () => {
 
 // ───────────────────────────── ciclo de um cartão ─────────────────────────────
 
-test('cartão novo: passos de 1 e 10 minutos, e "Bom" no último passo forma com 4 dias', () => {
+// Vetores da implementação de referência (py-fsrs, tests/test_basic.py), que acompanha o
+// FSRS-6 do Anki. Se estes testes falharem, o agendamento deixou de ser igual ao do Anki.
+const SEM_FUZZ = () => ({ ...configBaralho({}), fuzz: false });
+
+test('igual à referência FSRS-6: intervalos de Bom×6, Errei×2, Bom×5', () => {
+  const cfg = SEM_FUZZ();
+  const notas = [3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3];
+  let c = cartaoNovo();
+  let agora = new Date(2022, 10, 29, 12, 30);
+  const ivls = [];
+  for (const n of notas) {
+    c = agendar(c, n, cfg, agora);
+    ivls.push(c.estado === 'revisao' ? c.intervaloDias : 0);
+    agora = new Date(c.due);
+  }
+  assert.deepEqual(ivls, [0, 2, 11, 46, 163, 498, 0, 0, 2, 4, 7, 12, 21]);
+});
+
+test('igual à referência FSRS-6: estabilidade e dificuldade após Errei, Bom×5', () => {
+  const cfg = SEM_FUZZ();
+  let c = cartaoNovo();
+  let agora = new Date(2022, 10, 29, 12, 30);
+  for (const [n, d] of [[1, 0], [3, 0], [3, 1], [3, 3], [3, 8], [3, 21]]) {
+    agora = dias(agora, d);
+    c = agendar(c, n, cfg, agora);
+  }
+  assert.ok(Math.abs(c.s - 53.62691) < 1e-4, `S = ${c.s}`);
+  assert.ok(Math.abs(c.d - 6.3574867) < 1e-4, `D = ${c.d}`);
+});
+
+test('igual à referência FSRS-6: Fácil repetido leva a dificuldade ao mínimo (1)', () => {
+  const cfg = SEM_FUZZ();
+  let c = cartaoNovo();
+  for (let i = 0; i < 10; i += 1) c = agendar(c, 4, cfg, INICIO);
+  assert.equal(c.d, 1);
+});
+
+test('cartão novo: passos de 1 e 10 min como no Anki; Difícil no 1º passo = média dos dois', () => {
   const cfg = configBaralho({});
   const c0 = cartaoNovo();
-  assert.deepEqual(previsoes(c0, cfg, INICIO), { 1: '1 min', 2: '6 min', 3: '10 min', 4: '14 d' });
+  const p = previsoes(c0, cfg, INICIO);
+  assert.equal(p[1], '1 min');
+  assert.equal(p[2], '6 min');
+  assert.equal(p[3], '10 min');
   const c1 = agendar(c0, 3, cfg, INICIO);
   assert.equal(c1.estado, 'aprendendo');
   assert.equal(c1.passo, 1);
+  assert.equal(previsoes(c1, cfg, minutos(INICIO, 10))[2], '10 min', 'Difícil depois do 1º passo repete o passo');
   const c2 = agendar(c1, 3, cfg, minutos(INICIO, 11));
   assert.equal(c2.estado, 'revisao');
-  assert.equal(c2.intervaloDias, 4);
-  assert.equal(new Date(c2.due).getDate(), 24);
+  assert.ok(c2.intervaloDias >= 1);
 });
 
-test('a memória só muda na primeira resposta do dia (como no FSRS-4.5)', () => {
-  const cfg = configBaralho({});
+test('revisão no mesmo dia mexe na memória (curto prazo), mas Difícil não baixa a estabilidade', () => {
+  const cfg = SEM_FUZZ();
   const c1 = agendar(cartaoNovo(), 3, cfg, INICIO);
-  const c2 = agendar(c1, 1, cfg, minutos(INICIO, 2));
-  assert.equal(c2.s, c1.s);
-  assert.equal(c2.d, c1.d);
-  assert.equal(c2.passo, 0, 'errar volta ao primeiro passo');
+  const errou = agendar(c1, 1, cfg, minutos(INICIO, 2));
+  assert.ok(errou.s < c1.s, 'errar no mesmo dia reduz S');
+  assert.ok(errou.d > c1.d, 'errar sobe D');
+  assert.equal(errou.passo, 0, 'errar volta ao primeiro passo');
+  const semPassos = { ...cfg, passos: [] };
+  const formado = agendar(cartaoNovo(), 3, semPassos, INICIO);
+  const dificil = agendar(formado, 2, semPassos, minutos(INICIO, 1));
+  assert.equal(dificil.s, formado.s);
+});
+
+test('fuzz como no Anki: só a partir de 2,5 dias, dentro da faixa, e a previsão bate com o resultado', () => {
+  assert.deepEqual(faixaFuzz(2), [2, 2]);
+  assert.deepEqual(faixaFuzz(10), [8, 12]);
+  assert.deepEqual(faixaFuzz(100), [93, 107]);
+  const cfg = configBaralho({});
+  let c = agendar(agendar(cartaoNovo(), 3, cfg, INICIO), 3, cfg, minutos(INICIO, 11));
+  for (let k = 0; k < 6; k += 1) {
+    const quando = new Date(c.due);
+    const prev = previsoes(c, cfg, quando)[3];
+    c = agendar(c, 3, cfg, quando);
+    assert.equal(prev, rotuloIntervalo(c, quando));
+  }
+  // Cartões diferentes com o mesmo histórico se espalham por dias diferentes.
+  const vencimentos = new Set();
+  for (let k = 0; k < 20; k += 1) {
+    let x = { ...cartaoNovo(), id: `x${k}:reconhecer` };
+    x = agendar(agendar(x, 3, cfg, INICIO), 3, cfg, minutos(INICIO, 11));
+    x = agendar(x, 3, cfg, new Date(x.due));
+    x = agendar(x, 3, cfg, new Date(x.due));
+    vencimentos.add(x.intervaloDias);
+  }
+  assert.ok(vencimentos.size > 1, `todos caíram em ${[...vencimentos]}`);
 });
 
 test('revisão: Difícil < Bom < Fácil sempre, e errar vai ao reaprendizado com recaída contada', () => {

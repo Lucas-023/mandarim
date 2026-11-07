@@ -137,7 +137,9 @@ aba. Palavra removida tem o cartão escondido, e o histórico volta se ela volta
 Para quem não quer (ou não pode, como no iPhone sem pagar o AnkiMobile) depender do Anki. Aba
 **Baralho**.
 
-- **Algoritmo FSRS-4.5**, o mesmo que o Anki usa hoje, com os pesos padrão e retenção desejada
+- **Algoritmo FSRS-6**, o mesmo do Anki atual, conferido contra os vetores de teste da implementação
+  de referência. Inclui a variação aleatória dos intervalos (fuzz) e o intervalo máximo de 100 anos do
+  Anki. Usa os pesos padrão e a retenção desejada
   ajustável (90% por padrão).
 - **Cartões vêm do que você aprova** em *Criar cartões* (inclusive o vocabulário do pacote do dia) ou
   do botão *Adicionar cartão*. Cada palavra vira até três cartões: **reconhecer** (汉字 → português),

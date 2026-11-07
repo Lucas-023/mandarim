@@ -6,12 +6,14 @@
  * para dessincronizar. Cada rascunho gera um cartão por modelo ligado
  * (reconhecer, produzir, ouvir), e cada cartão guarda só o agendamento.
  *
- * Agendamento como o do Anki com FSRS (ver fsrs.js):
+ * Agendamento como o do Anki com FSRS-6 (ver fsrs.js):
  *   - cartão novo passa por passos de aprendizado em minutos (1, 10);
  *   - "Bom" no último passo forma o cartão: o intervalo vem da estabilidade;
  *   - errar na revisão volta aos passos de reaprendizado (10 min);
- *   - a memória (S, D) só muda na primeira resposta de cada dia — como no
- *     FSRS-4.5, repetir no mesmo dia não é evidência de memória de longo prazo;
+ *   - toda resposta mexe na memória (S, D); no mesmo dia, pela fórmula de curto
+ *     prazo do FSRS-6, que muda bem menos que uma revisão em outro dia;
+ *   - intervalos de revisão variam um pouco (fuzz, como no Anki), para cartões
+ *     aprendidos juntos não vencerem todos no mesmo dia;
  *   - cartões irmãos (mesmo rascunho, outro modelo) não aparecem no mesmo dia.
  *
  * Isto NÃO é proficiência: a nota é você quem dá. Revisar rende XP (atividade)
@@ -20,7 +22,9 @@
 import { uid } from './storage.js';
 import { dayKey, addDays, awardXp } from './xp.js';
 import { getItem, reviewOutcome } from './schedule.js';
-import { PESOS_PADRAO, memoriaInicial, revisar, intervaloPara, retencao } from './fsrs.js';
+import {
+  PESOS_PADRAO, memoriaInicial, revisar, intervaloPara, retencao, aplicarFuzz, sorteioEstavel,
+} from './fsrs.js';
 
 export const MODELOS = {
   reconhecer: { nome: 'Reconhecer', descricao: '汉字 → português' },
@@ -36,7 +40,8 @@ export const CONFIG_PADRAO = Object.freeze({
   retencaoDesejada: 0.9,
   passos: [1, 10],
   passosReaprender: [10],
-  intervaloMaximo: 3650,
+  /** Padrão do Anki: 36500 dias (100 anos). */
+  intervaloMaximo: 36500,
   modelos: { reconhecer: true, produzir: true, ouvir: false },
   /** Minutos que se pode adiantar um cartão em aprendizado quando nada mais resta. */
   adiantarAprendizado: 20,
@@ -141,13 +146,20 @@ function diasEntre(deISO, ateDia) {
   return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / 86400000);
 }
 
-/** Estado de memória depois de responder, aplicando a regra de "uma vez por dia". */
+/** Estado de memória depois de responder. Mesmo dia → fórmula de curto prazo (dentro de `revisar`). */
 function memoriaApos(cartao, nota, hoje, w) {
   if (cartao.s == null) return memoriaInicial(nota, w);
-  if (cartao.ultimaRevisao && dayKey(new Date(cartao.ultimaRevisao)) === hoje) return { s: cartao.s, d: cartao.d };
   const decorridos = cartao.ultimaRevisao ? diasEntre(cartao.ultimaRevisao, hoje) : 0;
   const { s, d } = revisar({ s: cartao.s, d: cartao.d }, decorridos, nota, w);
   return { s, d };
+}
+
+/** Sorteio do fuzz: fixo para o cartão nesta revisão, então a previsão do botão bate com o resultado. */
+const sorteioDe = (cartao) => sorteioEstavel(`${cartao.id}:${cartao.reps}`);
+
+function comFuzz(cartao, dias, cfg, minimo = 1) {
+  if (cfg.fuzz === false) return Math.max(dias, minimo);
+  return aplicarFuzz(dias, sorteioDe(cartao), { minimo, maximo: cfg.intervaloMaximo });
 }
 
 function formar(cartao, dias, hoje) {
@@ -180,7 +192,11 @@ export function agendar(cartao, nota, cfg, agora = new Date(), w = PESOS_PADRAO)
     ivl[2] = Math.min(ivl[2], ivl[3]);
     ivl[3] = Math.max(ivl[3], ivl[2] + 1);
     ivl[4] = Math.max(ivl[4], ivl[3] + 1);
-    return formar(base, Math.min(cfg.intervaloMaximo, ivl[nota]), hoje);
+    // Fuzz como no Anki, mantendo Difícil < Bom < Fácil depois da variação.
+    const f2 = comFuzz(cartao, ivl[2], cfg);
+    const f3 = comFuzz(cartao, ivl[3], cfg, f2 + 1);
+    const f4 = comFuzz(cartao, ivl[4], cfg, f3 + 1);
+    return formar(base, Math.min(cfg.intervaloMaximo, { 2: f2, 3: f3, 4: f4 }[nota]), hoje);
   }
 
   // novo, aprendendo ou reaprendendo: passos em minutos.
@@ -191,15 +207,17 @@ export function agendar(cartao, nota, cfg, agora = new Date(), w = PESOS_PADRAO)
 
   if (nota === 4 || !passos.length) {
     // Fácil pula os passos; fora do cartão novo, rende ao menos um dia a mais que Bom.
-    return formar(base, cartao.estado === 'novo' || !passos.length ? formado : formado + 1, hoje);
+    const dias = cartao.estado === 'novo' || !passos.length ? formado : formado + 1;
+    return formar(base, comFuzz(cartao, dias, cfg), hoje);
   }
   if (nota === 1) return emPasso(base, estado, 0, passos[0], agora);
   if (nota === 2) {
-    const espera = passo === 0 && passos.length > 1 ? (passos[0] + passos[1]) / 2 : passos[passo] * 1.5;
+    // Como no Anki: no 1º passo, média dos dois primeiros (ou 1,5× se só há um); depois, repete o passo atual.
+    const espera = passo === 0 ? (passos.length > 1 ? (passos[0] + passos[1]) / 2 : passos[0] * 1.5) : passos[passo];
     return emPasso(base, estado, passo, espera, agora);
   }
   if (passo + 1 < passos.length) return emPasso(base, estado, passo + 1, passos[passo + 1], agora);
-  return formar(base, formado, hoje);
+  return formar(base, comFuzz(cartao, formado, cfg), hoje);
 }
 
 /** Texto curto para um intervalo, como nos botões do Anki. */
