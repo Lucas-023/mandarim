@@ -66,7 +66,7 @@ todas as telas.
 | Configurações (objetivos, metas, regras de XP, integração, privacidade) | ✅ |
 | Dados de demonstração claramente marcados como fictícios | ✅ |
 | Servidor local com estado em arquivo | ✅ |
-| Pacote diário de conteúdo gerado por LLM (vocabulário, diálogo, exercícios, frases de campo) | ✅ |
+| Pacote diário de conteúdo gerado por LLM (vocabulário, diálogo, exercícios, frases prontas) | ✅ |
 | Currículo gramatical de 50 pontos em ordem, uma estrutura nova por dia | ✅ |
 | Repetição espaçada própria (SM-2 simplificado) alimentada pelos exercícios | ✅ |
 | Exercício de revisão do que está devido, sem depender de modelo | ✅ |
@@ -83,7 +83,9 @@ todas as telas.
 | Geração do pacote pelo próprio celular, com chave da Claude API no aparelho | ✅ |
 | Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
 | Baralho interno estilo Anki (FSRS, 4 notas, passos, navegador, estatísticas), sem precisar do Anki | ✅ |
-| Aba Vocabulário: flashcards FSRS só com as 77 palavras das lições 1–5 do curso, separada do resto | ✅ (sem XP nem ligação com o pacote, por ora) |
+| As 77 palavras das lições 1–5 do curso no Baralho, como já sabidas, e enviadas ao gerador como vocabulário conhecido | ✅ |
+| Palavras e frases do pacote do dia entram sozinhas no Baralho, como cartões novos (desligável) | ✅ |
+| Treino livre no Baralho (fora do agendamento) e "+10 novos hoje" | ✅ |
 | Prática de fala: repetir em voz alta, dizer a partir do português, conversa simulada; gravar e comparar com o modelo | ✅ (autoavaliação, sem nota) |
 | Service worker para funcionar em modo avião | ✅ |
 | Mesclagem de dois aparelhos sem perder histórico | ✅ |
@@ -104,38 +106,6 @@ todas as telas.
 - Fase 2 (duplicatas via Anki, relatórios semanais automáticos) e Fase 3 (áudio, conversa simulada)
   não foram implementadas.
 
-## Vocabulário: as palavras das lições do curso
-
-Aba **Vocabulário**. Flashcards só com as 77 palavras das lições 1–5 do livro do curso
-(`src/core/content/vocabLicoes.js`, transcrito de `vocab.png`). Cada palavra tem dois cartões,
-**reconhecer** (汉字 → português) e **produzir** (português → 汉字), com o mesmo estudo do Baralho:
-FSRS, os quatro botões, passos de 1 e 10 min, desfazer e os mesmos atalhos. Os cartões novos entram
-na ordem da lista, 10 por dia por padrão. Nas opções dá para ligar e desligar lições e tipos de
-cartão. **Ver palavras** mostra a lista por lição e o estado de cada cartão.
-
-Por enquanto a aba é **isolada**: responder não dá XP, não alimenta o pacote do dia e não conta como
-proficiência. Ela não se mistura com o Baralho. A ligação com o resto do app vem depois.
-
-**Intensivo:** o limite de 10 novos por dia não prende ninguém. **"+10 novos hoje"** libera mais
-palavras só naquele dia, e elas entram no agendamento normal. O **treino livre** passa pelos cartões
-quantas vezes você quiser (todas, só as já estudadas ou só as que você já errou; em qualquer
-direção). O que você errar volta 4 cartões depois, até acertar, e no fim dá para treinar só os
-erros. O treino livre **não mexe no agendamento**: as revisões continuam vindo no dia certo. Um treino em
-andamento fica salvo: recarregar a página ou fechar o app não o perde (botão **Continuar treino**).
-Por padrão, o "produzir" de uma palavra espera o dia seguinte ao "reconhecer". Num intensivo, ligue
-nas Opções **"Reconhecer e produzir da mesma palavra podem sair no mesmo dia"**, ou toque em
-**Liberar hoje** quando o dia acabar.
-
-**Só os flashcards, no computador:** `npm run vocab` sobe o servidor (se não estiver rodando) e abre
-o navegador em `http://127.0.0.1:8000/#/vocab?foco=1`, uma tela só com os cartões, sem menu. O
-atalho **Mandarim — Vocabulário** no menu de aplicativos faz o mesmo (`npm run vocab:atalho` o
-recria). O mesmo modo funciona no app publicado: `https://lucas-023.github.io/mandarim/#/vocab?foco=1`.
-O progresso do computador e o do celular são separados, cada um no seu aparelho, até que se use a
-mesclagem em Configurações.
-
-Para trocar ou acrescentar palavras, edite `vocabLicoes.js`. Palavra nova ganha cartão ao abrir a
-aba. Palavra removida tem o cartão escondido, e o histórico volta se ela voltar.
-
 ## Baralho: um pequeno Anki dentro do app
 
 Para quem não quer (ou não pode, como no iPhone sem pagar o AnkiMobile) depender do Anki. Aba
@@ -145,10 +115,21 @@ Para quem não quer (ou não pode, como no iPhone sem pagar o AnkiMobile) depend
   de referência. Inclui a variação aleatória dos intervalos (fuzz) e o intervalo máximo de 100 anos do
   Anki. Usa os pesos padrão e a retenção desejada
   ajustável (90% por padrão).
-- **Cartões vêm do que você aprova** em *Criar cartões* (inclusive o vocabulário do pacote do dia) ou
-  do botão *Adicionar cartão*. Cada palavra vira até três cartões: **reconhecer** (汉字 → português),
-  **produzir** (português → 汉字) e, se ligado, **ouvir** (áudio → significado). Os irmãos nunca
-  aparecem no mesmo dia.
+- **Tudo num baralho só.** Os cartões vêm de três lugares:
+  - **as 77 palavras das lições 1–5 do curso** (`src/core/content/vocabLicoes.js`, de `vocab.png`),
+    que entram como **já sabidas**: começam em revisão, espalhadas pelas duas primeiras semanas
+    (os "reconhecer" na primeira, os "produzir" na segunda), para você não esquecer. O que você já
+    tinha estudado na antiga aba Vocabulário vem com o progresso e o histórico. Palavra de lição
+    nova acrescentada ao arquivo entra como cartão novo;
+  - **o pacote do dia**: palavras novas e frases prontas entram sozinhas, como cartões **novos**
+    (desliga nas Opções; aí elas esperam aprovação em *Criar cartões*);
+  - o que você aprova em *Criar cartões* ou põe no botão *Adicionar cartão*.
+
+  Cada palavra vira até três cartões: **reconhecer** (汉字 → português), **produzir** (português →
+  汉字) e, se ligado, **ouvir** (áudio → significado). Por padrão os irmãos não aparecem no mesmo dia.
+- **O gerador sabe o que você sabe.** As palavras do curso (e tudo que já passou pelo baralho ou
+  pelos pacotes) vão no pedido como vocabulário conhecido: o pacote monta as frases com elas e
+  acrescenta as palavras novas do dia.
 - **Estudo como no Anki:** passos de 1 e 10 min para cartões novos, os quatro botões (Errei, Difícil,
   Bom, Fácil) mostrando o próximo intervalo, limite de novos e de revisões por dia, desfazer. No
   computador: Espaço mostra a resposta (e depois vale "Bom"), 1–4 dão a nota, Z desfaz. O áudio toca
@@ -157,6 +138,22 @@ Para quem não quer (ou não pode, como no iPhone sem pagar o AnkiMobile) depend
   esquecer, excluir. Cartão errado 8 vezes é marcado como problemático, com a sugestão de reescrevê-lo.
 - **Estatísticas:** respondidos e acertos de hoje, retenção dos últimos 30 dias (só cartões já
   formados), cartões novos/jovens/maduros e previsão de revisões para 7 dias.
+- **Treino livre:** passa pelos cartões quantas vezes você quiser, durante o dia (todo o baralho, só
+  os que viu hoje, só os já estudados ou só os que já errou; do curso, dos pacotes ou os seus; em
+  qualquer direção). O que você errar volta 4 cartões depois, até acertar, e no fim dá para treinar
+  só os erros. **Não mexe no agendamento** nem dá XP: as revisões continuam vindo no dia certo. O
+  treino em andamento fica salvo (botão **Continuar treino**).
+- **Intensivo:** **"+10 novos hoje"** libera mais cartões novos só naquele dia. Nas Opções,
+  **"Reconhecer e produzir da mesma palavra podem sair no mesmo dia"**, ou **Liberar hoje** no fim
+  do estudo.
+- **Só os flashcards, no computador:** `npm run vocab` sobe o servidor (se preciso) e abre
+  `http://127.0.0.1:8000/#/deck?foco=1`, uma tela só com o baralho, sem menu. O atalho **Mandarim —
+  Baralho** no menu de aplicativos faz o mesmo (`npm run vocab:atalho` o recria). No app publicado:
+  `https://lucas-023.github.io/mandarim/#/deck?foco=1`. Links antigos `#/vocab` continuam abrindo
+  o Baralho.
+
+Para escolher só uma lição, use a busca do navegador de cartões (`licao-2`, por exemplo) e suspenda
+o que não quiser agora: a opção de ligar e desligar lições era da aba Vocabulário e não veio junto.
 
 Revisar rende XP (uma sessão por dia, a partir de 10 respostas) mas **não** mexe na proficiência: a
 nota é você quem dá. Se a palavra já está na revisão do pacote do dia, a resposta conta lá também. A
@@ -266,7 +263,7 @@ quando.
 
 Vocabulário com pinyin, tradução e frase de exemplo; um diálogo de 6 a 12 falas; 6 a 10 exercícios
 (múltipla escolha, completar frase e produção escrita); pares de tom que você provavelmente confunde;
-frases de campo de futebol com o momento de usar cada uma; uma nota de gramática; e observações do
+frases prontas do dia a dia com o momento de usar cada uma (futebol só de vez em quando: o foco é o cotidiano); uma nota de gramática; e observações do
 gerador sobre seus erros recentes.
 
 Exemplo real, do pacote gerado a partir do estado de demonstração — o modelo pegou a lacuna anotada
@@ -293,8 +290,11 @@ Quando a validação falha, o gerador devolve os erros ao modelo e pede correç�
 padrão, `--retries=N`). Se ainda falhar, nada é salvo e a resposta vai para
 `data/packs/<data>.rejeitado.txt` para você olhar.
 
-Os cartões gerados nascem **pendentes**, marcados "tradução e pinyin gerados por modelo de linguagem:
-confirme antes de aprovar". Nada vai para o Anki sem a sua aprovação.
+As palavras e frases prontas do pacote **entram direto no Baralho, como cartões novos** (você pediu;
+desliga em Baralho → Opções → "Palavras e frases do pacote do dia entram direto no baralho"). A
+tradução e o pinyin vêm do modelo de linguagem: se algum estiver errado, corrija em *Navegar
+cartões*. Com a opção desligada, eles nascem **pendentes** em *Criar cartões*, marcados "confirme
+antes de aprovar". Para o Anki de verdade nada vai sem você exportar.
 
 ### O léxico cresce
 
@@ -535,7 +535,7 @@ inventado. O agendador deste app continua sem ver o que você revisa dentro do A
   evidência que a gerou.
 - **Apoio contabilizado.** Revelar o pinyin antes de responder é registrado e reduz o peso do
   acerto (fator 0,7).
-- **Nenhum cartão sai sem revisão.** Sugestões nascem pendentes; nada vai ao Anki sem aprovação.
+- **Nenhum cartão sai sem revisão, salvo pedido explícito.** Sugestões de texto colado nascem pendentes; as do pacote vão direto ao Baralho porque você ligou essa opção (padrão), e nada vai ao Anki sem exportar.
 - **Falha não é sucesso.** Um envio ao AnkiConnect que falhou é registrado como erro, com o
   estágio onde falhou, e o cartão continua "aprovado", não "exportado".
 

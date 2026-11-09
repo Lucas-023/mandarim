@@ -5,7 +5,9 @@
  *  - acrescentar vocabulário ao léxico em execução (melhora segmentação, pinyin
  *    e detecção de duplicatas);
  *  - virar exercícios para ele responder;
- *  - virar rascunhos de cartão, que continuam exigindo aprovação manual.
+ *  - virar cartões do Baralho. Por padrão (config.pacoteDireto, pedido do aluno)
+ *    as palavras e frases entram direto, como cartões NOVOS; desligado, nascem
+ *    pendentes e esperam aprovação em "Criar cartões".
  *
  * O que um pacote NÃO pode fazer:
  *  - mexer em proficiência, XP, conquistas ou histórico. Pontuação continua
@@ -17,6 +19,7 @@ import { registerEntries } from './content/lexicon.js';
 import { saveDrafts } from './flashcards.js';
 import { introduceItems, grammarRef } from './schedule.js';
 import { grammarPoint } from './content/grammar.js';
+import { configBaralho, sincronizarCartoes } from './baralho.js';
 
 /** Quantos pacotes completos ficam guardados no estado (o resto vive em data/packs/). */
 export const MAX_STORED_PACKS = 30;
@@ -44,7 +47,8 @@ export function ingestPack(state, pack, { at = new Date().toISOString() } = {}) 
   const vocabAdded = registerEntries(pack.vocab, { source, addedAt: at });
   state.lexiconExtra = [...(state.lexiconExtra || []), ...vocabAdded];
 
-  // Rascunhos de cartão: vocabulário e frases de campo. Nascem pendentes.
+  // Cartões: vocabulário e frases prontas. Direto no baralho, ou pendentes se ele desligou.
+  const direto = configBaralho(state).pacoteDireto;
   const candidates = [
     ...pack.vocab.map((v) => ({
       front: v.hz,
@@ -63,16 +67,16 @@ export function ingestPack(state, pack, { at = new Date().toISOString() } = {}) 
       pinyin: f.py,
       example: '',
       exampleTranslation: '',
-      context: f.when || 'frase de campo',
+      context: f.when || 'frase pronta',
       difficulty: 2,
-      tags: ['futebol', 'expressao', 'gerado'],
+      tags: [...new Set([...(f.tags || []), 'expressao', 'gerado'])],
       kind: 'sentence',
     })),
   ];
 
   const drafts = candidates.map((c) => ({
     id: uid('card'),
-    status: 'pending',
+    status: direto ? 'approved' : 'pending',
     duplicate: false,
     createdAt: at,
     source: `${source} (gerado por ${pack.provenance?.model || 'LLM'})`,
@@ -85,6 +89,8 @@ export function ingestPack(state, pack, { at = new Date().toISOString() } = {}) 
     ...c,
   }));
   const draftsAdded = saveDrafts(state, drafts);
+  // Cartões novos (em ordem de chegada), prontos para o estudo de hoje.
+  if (direto && draftsAdded.length) sincronizarCartoes(state, { agora: new Date(at) });
 
   // Agendamento: tudo que o pacote apresenta entra na fila de revisão hoje
   // mesmo, para voltar amanhã. Sem isso, "novo todo dia" viraria um funil sem

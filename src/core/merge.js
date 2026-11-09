@@ -152,6 +152,10 @@ export function mergeStates(aBruto, bBruto) {
     // O retrato para desfazer só vale no aparelho onde a resposta foi dada.
     registro: ordenarPorData(registro.lista).map(({ anterior, agendaAnterior, ...r }) => r),
     config: recente.deck?.config || antigo.deck?.config || {},
+    // Palavras do curso já incorporadas (ver curso.js): união, para uma excluída não voltar.
+    ...(a.deck?.cursoIncluido || b.deck?.cursoIncluido
+      ? { cursoIncluido: [...new Set([...(a.deck?.cursoIncluido || []), ...(b.deck?.cursoIncluido || [])])] }
+      : {}),
   };
   relatorio.adicionados.baralho = cartoesNovos + registro.novos;
 

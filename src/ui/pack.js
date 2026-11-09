@@ -9,6 +9,7 @@ import { podeGerarNoAparelho, gerarNoAparelho } from './geracao.js';
 import { caixaConfigurada, sincronizarCaixa } from './caixa.js';
 import { temChaveApi } from '../core/secrets.js';
 import { dayKey } from '../core/xp.js';
+import { configBaralho } from '../core/baralho.js';
 
 export function renderPack(ctx) {
   const { state } = ctx;
@@ -39,7 +40,7 @@ export function renderPack(ctx) {
       button('Falar: conversa simulada', () => ctx.go('speak', { modo: 'conversa', date: pack.date }), { kind: 'secondary' }),
       button('Falar: repetir as frases', () => ctx.go('speak', { modo: 'repetir', date: pack.date }), { kind: 'secondary' }),
       button('Criar cartões do diálogo', () => ctx.go('cards', { prefill: dialogueText(pack) }), { kind: 'secondary' }),
-      button('Revisar cartões pendentes', () => ctx.go('cards', { tab: 'review' }), { kind: 'ghost' }),
+      button('Estudar o baralho', () => ctx.go('deck', { modo: 'estudar' }), { kind: 'ghost' }),
       button('Currículo gramatical', () => { ctx.ui.packTab = 'gramatica'; ctx.render(); }, { kind: 'ghost' })),
     h('small', { class: 'hint' }, provenanceLine(pack)),
   ));
@@ -95,7 +96,10 @@ export function renderPack(ctx) {
   vocabCard.append(h('p', { class: 'hint' },
     `${novos} palavra(s) nova(s) e ${revisoes} de revisão (trazidas de volta pelo agendador, ` +
     'em frases novas). Todas entraram no léxico do app: o gerador de cartões passa a reconhecê-las ' +
-    'em textos que você colar. Os cartões correspondentes ficam pendentes de revisão.'));
+    'em textos que você colar. ' +
+    (configBaralho(ctx.state).pacoteDireto
+      ? 'As palavras novas e as frases prontas já entraram no Baralho como cartões novos.'
+      : 'Os cartões correspondentes ficam pendentes de revisão em "Criar cartões".')));
   for (const v of pack.vocab) {
     const reveal = h('div', { class: 'pinyin hidden' },
       h('div', {}, `${v.py} — ${v.pt}`),
@@ -115,7 +119,7 @@ export function renderPack(ctx) {
   wrap.append(vocabCard);
 
   if (pack.fieldPhrases?.length) {
-    wrap.append(card('Frases de campo',
+    wrap.append(card('Frases prontas',
       h('table', { class: 'table' },
         h('thead', {}, h('tr', {}, h('th', {}, 'Chinês'), h('th', {}, 'Pinyin'), h('th', {}, 'Português'), h('th', {}, 'Quando usar'))),
         h('tbody', {}, ...pack.fieldPhrases.map((f) => h('tr', {},

@@ -18,6 +18,7 @@ const { renderBaralho } = await import('../src/ui/baralho.js');
 const { renderFalar } = await import('../src/ui/falar.js');
 const { ingestPack } = await import('../src/core/packs.js');
 const { resetRegistry } = await import('../src/core/content/lexicon.js');
+const { PALAVRAS } = await import('../src/core/content/vocabLicoes.js');
 const REAL_PACK = JSON.parse(
   await (await import('node:fs/promises')).readFile(new URL('./fixtures/pack-real.json', import.meta.url), 'utf8'),
 );
@@ -503,8 +504,14 @@ test('caixa postal: token colado no campo do repositório é explicado, não cha
 
 // ───────────────────────────── baralho ─────────────────────────────
 
+/** Estado sem as palavras do curso, para testar o baralho isolado (o curso tem testes em curso.test.js). */
+function semCurso(s = emptyState()) {
+  s.deck.cursoIncluido = PALAVRAS.map((p) => p.hanzi);
+  return s;
+}
+
 function estadoComBaralho() {
-  const s = emptyState();
+  const s = semCurso();
   s.profile.onboardingDone = true;
   s.cardDrafts.push(
     { id: 'a', front: '踢球', back: 'jogar bola', pinyin: 'tī qiú', status: 'approved', createdAt: '2026-10-01T00:00:00Z' },
@@ -514,7 +521,7 @@ function estadoComBaralho() {
 }
 
 test('baralho vazio explica de onde vêm os cartões', () => {
-  const texto = renderBaralho(makeCtx(emptyState())).textContent;
+  const texto = renderBaralho(makeCtx(semCurso())).textContent;
   assert.match(texto, /baralho está vazio/);
   assert.match(texto, /Opções do baralho/);
 });

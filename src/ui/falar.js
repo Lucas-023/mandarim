@@ -75,7 +75,7 @@ function renderFrases(ctx, f) {
   }
   if (!f.fila.length) {
     return card(null, emptyNote(
-      'Nenhuma frase disponível agora: elas vêm do pacote do dia (frases de campo, exemplos, diálogo) ' +
+      'Nenhuma frase disponível agora: elas vêm do pacote do dia (frases prontas, exemplos, diálogo) ' +
       'e dos cartões de frase aprovados. As que saíram bem descansam alguns dias.'),
     h('div', { class: 'actions' }, button('Ver o pacote do dia', () => ctx.go('pack'), { kind: 'secondary' })));
   }

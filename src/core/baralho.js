@@ -46,6 +46,18 @@ export const CONFIG_PADRAO = Object.freeze({
   /** Minutos que se pode adiantar um cartão em aprendizado quando nada mais resta. */
   adiantarAprendizado: 20,
   audioAoMostrar: true,
+  /**
+   * Palavras e frases do pacote do dia entram direto no baralho, como cartões
+   * novos (pedido do aluno em 2026-11-09). Falso: nascem pendentes em "Criar
+   * cartões", esperando aprovação uma a uma.
+   */
+  pacoteDireto: true,
+  /**
+   * Falso (padrão, como o Anki): reconhecer e produzir da mesma palavra em dias
+   * diferentes, para um não "soprar" o outro. Verdadeiro: podem sair no mesmo
+   * dia (útil num intensivo).
+   */
+  irmaosNoMesmoDia: false,
 });
 
 /** Recaídas a partir das quais o cartão é marcado como problemático (padrão do Anki). */
@@ -71,7 +83,7 @@ export function configBaralho(state) {
   return { ...CONFIG_PADRAO, ...salvo, modelos: { ...CONFIG_PADRAO.modelos, ...(salvo.modelos || {}) } };
 }
 
-const idCartao = (draftId, modelo) => `${draftId}:${modelo}`;
+export const idCartao = (draftId, modelo) => `${draftId}:${modelo}`;
 const meiaNoite = (dia) => {
   const [a, m, d] = dia.split('-').map(Number);
   return new Date(a, m - 1, d).toISOString();
@@ -262,7 +274,8 @@ export function fila(state, { agora = new Date() } = {}) {
   const vencidosAprendizado = emPassos.filter((c) => Date.parse(c.due) <= agora.getTime()).sort((a, b) => a.due.localeCompare(b.due));
 
   // Um cartão por rascunho por dia (fora do aprendizado): os irmãos esperam amanhã.
-  const usados = new Set([...irmaosVistos, ...emPassos.map((c) => c.draftId)]);
+  // Com irmaosNoMesmoDia, só não vêm os dois na mesma lista.
+  const usados = cfg.irmaosNoMesmoDia ? new Set() : new Set([...irmaosVistos, ...emPassos.map((c) => c.draftId)]);
   const pegar = (lista) => {
     const saida = [];
     for (const c of lista) {
@@ -284,7 +297,7 @@ export function fila(state, { agora = new Date() } = {}) {
   const novos = pegar(cartoes
     .filter((c) => c.estado === 'novo')
     .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm) || ordemModelo(a.modelo) - ordemModelo(b.modelo)))
-    .slice(0, Math.max(0, cfg.novosPorDia - novosFeitos));
+    .slice(0, Math.max(0, cfg.novosPorDia + novosExtrasHoje(state, hoje) - novosFeitos));
 
   const contagem = {
     novos: novos.length,
@@ -308,7 +321,33 @@ export function fila(state, { agora = new Date() } = {}) {
     else if (Date.parse(prox.due) < fimDoDia) espera = prox.due;
   }
 
-  return { proximo, rascunho: proximo ? rascunhos.get(proximo.draftId) : null, contagem, espera };
+  // Quantos ficaram de fora só pela regra dos irmãos (para a tela oferecer liberar).
+  let irmaosEsperando = 0;
+  if (!cfg.irmaosNoMesmoDia) {
+    const presos = cartoes.filter((c) => irmaosVistos.has(c.draftId));
+    const vagasNovos = Math.max(0, cfg.novosPorDia + novosExtrasHoje(state, hoje) - novosFeitos - novos.length);
+    irmaosEsperando = presos.filter((c) => c.estado === 'revisao' && dayKey(new Date(c.due)) <= hoje).length
+      + Math.min(vagasNovos, presos.filter((c) => c.estado === 'novo').length);
+  }
+
+  return { proximo, rascunho: proximo ? rascunhos.get(proximo.draftId) : null, contagem, espera, irmaosEsperando };
+}
+
+// ---------------------------------------------------------------- intensivo
+
+/** Novos liberados a mais só para hoje (botão "+10 novos hoje"). */
+export function novosExtrasHoje(state, hoje = dayKey()) {
+  const e = state.deck?.config?.extras;
+  return e && e.dia === hoje ? e.n : 0;
+}
+
+/** Libera `n` cartões novos além do limite, só hoje. @returns total extra de hoje */
+export function liberarNovosHoje(state, n = 10, { agora = new Date() } = {}) {
+  const deck = garantirBaralho(state);
+  const hoje = dayKey(agora);
+  const total = novosExtrasHoje(state, hoje) + n;
+  deck.config = { ...deck.config, extras: { dia: hoje, n: total } };
+  return total;
 }
 
 // ---------------------------------------------------------------- responder

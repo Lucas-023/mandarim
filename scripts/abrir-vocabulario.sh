@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# Abre só os flashcards do Vocabulário no computador (modo foco).
+# Abre só os flashcards do Baralho no computador (modo foco). O nome do arquivo
+# ficou da antiga aba Vocabulário, que virou parte do Baralho em 2026-11-09.
 #
 # Usa o servidor local (dados em data/state.json, com backups). Se ele não
 # estiver rodando, sobe em segundo plano e deixa ligado: fechar o navegador
 # não perde nada, e abrir de novo é instantâneo.
 #
 #   npm run vocab                     abre agora
-#   npm run vocab:atalho              põe "Mandarim — Vocabulário" no menu de aplicativos
+#   npm run vocab:atalho              põe "Mandarim — Baralho" no menu de aplicativos
 #   bash scripts/abrir-vocabulario.sh --atalho   (o mesmo que o anterior)
 set -euo pipefail
 
 PASTA="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORTA="${PORT:-8000}"
-URL="http://127.0.0.1:${PORTA}/#/vocab?foco=1"
+URL="http://127.0.0.1:${PORTA}/#/deck?foco=1"
 
 if [[ "${1:-}" == "--atalho" ]]; then
   destino="${XDG_DATA_HOME:-$HOME/.local/share}/applications/mandarim-vocabulario.desktop"
@@ -20,8 +21,8 @@ if [[ "${1:-}" == "--atalho" ]]; then
   cat > "$destino" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Mandarim — Vocabulário
-Comment=Flashcards das lições do curso (Mandarin Quest)
+Name=Mandarim — Baralho
+Comment=Flashcards do Mandarin Quest (curso + pacotes do dia)
 Exec=bash "$PASTA/scripts/abrir-vocabulario.sh"
 Icon=$PASTA/icone.svg
 Terminal=false

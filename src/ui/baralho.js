@@ -6,7 +6,12 @@ import { h, card, button, field, badge, bar, emptyNote, formatDate } from './dom
 import {
   MODELOS, ORDEM_MODELOS, NOTAS, configBaralho, fila, previsoes, responder, desfazer,
   sincronizarCartoes, precisaSincronizar, suspender, esquecer, salvarConfig, estatisticas,
+  liberarNovosHoje, novosExtrasHoje,
 } from '../core/baralho.js';
+import { incorporarCurso, precisaIncorporarCurso } from '../core/curso.js';
+import {
+  FILTROS_TREINO, ORIGENS_TREINO, montarTreino, responderTreino, treinoDosErros, salvarTreino, treinoAtual, faltamNoTreino,
+} from '../core/treino.js';
 import { saveDrafts, editDraft, setDraftStatus, pinyinFor } from '../core/flashcards.js';
 import { uid } from '../core/storage.js';
 import { speakButton, playAudio, canSpeak } from './audio.js';
@@ -16,13 +21,30 @@ const COR = { novos: 'var(--accent-soft)', aprendendo: 'var(--warn)', revisao: '
 const TEMPO_MAX_MS = 60 * 1000;
 
 export function renderBaralho(ctx) {
+  // Palavras do curso (e o progresso da antiga aba Vocabulário) entram no baralho.
+  if (precisaIncorporarCurso(ctx.state)) {
+    const rel = ctx.commit((s) => incorporarCurso(s), { silent: true });
+    avisarIncorporacao(ctx, rel);
+  }
   // Rascunho aprovado em outra tela ainda sem cartão: cria antes de desenhar.
   if (precisaSincronizar(ctx.state)) ctx.commit((s) => sincronizarCartoes(s), { silent: true });
   const modo = ctx.params.modo || 'inicio';
   if (modo === 'estudar') return renderEstudo(ctx);
+  if (modo === 'treino') return renderTreino(ctx);
   if (modo === 'navegar') return renderNavegador(ctx);
   if (modo === 'adicionar') return renderAdicionar(ctx);
   return renderInicio(ctx);
+}
+
+/** Conta o que a incorporação do curso fez (só quando fez algo visível). */
+export function avisarIncorporacao(ctx, rel) {
+  if (!rel) return;
+  const partes = [];
+  if (rel.jaSabidos) partes.push(`${rel.jaSabidos} cartões das lições do curso entraram como já sabidos, espalhados pelas próximas duas semanas`);
+  if (rel.migrados) partes.push(`${rel.migrados} trouxeram o progresso da aba Vocabulário`);
+  if (rel.novos) partes.push(`${rel.novos} cartões novos do curso`);
+  if (rel.pacotesAprovados) partes.push(`${rel.pacotesAprovados} cartões de pacotes que estavam esperando aprovação entraram como novos`);
+  if (partes.length) ctx.toast(`Baralho unificado: ${partes.join('; ')}.`, 'success');
 }
 
 function contagens(c, destaque = null) {
@@ -52,8 +74,8 @@ function renderInicio(ctx) {
     contagens(f.contagem),
     est.total === 0
       ? h('div', { class: 'callout' },
-          'O baralho está vazio. Ele se enche com os cartões que você aprova em "Criar cartões" ',
-          '(inclusive os que chegam no pacote do dia) e com os que você adiciona aqui.')
+          'O baralho está vazio. Ele se enche com as palavras do curso, com o que chega no pacote do dia ',
+          'e com os cartões que você aprova em "Criar cartões" ou adiciona aqui.')
       : null,
     !temAlgo && est.total > 0
       ? h('p', {}, f.espera
@@ -68,8 +90,10 @@ function renderInicio(ctx) {
       ? h('p', { class: 'hint' }, `${pendentes} cartão(ões) aguardando sua aprovação. `,
           h('button', { class: 'link', onClick: () => ctx.go('cards') }, 'Revisar e aprovar'),
           ' — só entram no baralho depois de aprovados.')
-      : null));
+      : null,
+    ctx.ui.foco ? h('div', { class: 'actions' }, button('Abrir o app completo', () => ctx.go('dashboard'), { kind: 'ghost' })) : null));
 
+  wrap.append(renderIntensivo(ctx));
   wrap.append(renderEstatisticas(est));
   wrap.append(renderOpcoes(ctx));
   return wrap;
@@ -130,6 +154,15 @@ function renderOpcoes(ctx) {
         m === 'ouvir' && !canSpeak() ? ' — este navegador não tem voz em chinês' : '')),
       h('small', { class: 'hint' }, 'Desligar um tipo esconde esses cartões sem apagar o histórico deles.')),
     h('label', { class: 'check' },
+      h('input', { type: 'checkbox', checked: cfg.irmaosNoMesmoDia, onChange: (e) => { rascunho.irmaosNoMesmoDia = e.target.checked; } }),
+      ' Reconhecer e produzir da mesma palavra podem sair no mesmo dia'),
+    h('small', { class: 'hint' }, 'Desligado (padrão, como o Anki), o "produzir" espera o dia seguinte ao "reconhecer". Ligue num intensivo.'),
+    h('label', { class: 'check' },
+      h('input', { type: 'checkbox', checked: cfg.pacoteDireto, onChange: (e) => { rascunho.pacoteDireto = e.target.checked; } }),
+      ' Palavras e frases do pacote do dia entram direto no baralho'),
+    h('small', { class: 'hint' }, 'Entram como cartões novos. Tradução e pinyin vêm do modelo de linguagem: se algum estiver errado, ',
+      'corrija em "Navegar cartões". Desligado, elas esperam aprovação em "Criar cartões".'),
+    h('label', { class: 'check' },
       h('input', { type: 'checkbox', checked: cfg.audioAoMostrar, onChange: (e) => { rascunho.audioAoMostrar = e.target.checked; } }),
       ' Tocar o áudio ao mostrar a resposta'),
     h('div', { class: 'actions' },
@@ -181,6 +214,7 @@ function verso(cartao, r) {
     h('div', { class: 'baralho-texto' }, r.back),
     canSpeak() ? h('div', { class: 'actions audio-row' },
       speakButton(r.front, { label: '▶ Ouvir' }), speakButton(r.front, { label: '🐢 Devagar', rate: 0.7, kind: 'ghost' })) : null,
+    r.usageNote ? h('div', { class: 'baralho-exemplo' }, r.usageNote) : null,
     exemplo(r),
     r.context && cartao.modelo !== 'produzir' ? h('div', { class: 'hint' }, r.context) : null,
     cartao.sanguessuga
@@ -211,9 +245,21 @@ function renderEstudo(ctx) {
       h('p', {}, f.espera
         ? `Os cartões em aprendizado voltam às ${hora(f.espera)}. Pode fechar o app: o progresso está salvo.`
         : `${est.respondidosHoje} resposta(s) hoje. Amanhã tem mais — a revisão de amanhã já está agendada.`),
+      f.irmaosEsperando
+        ? h('div', { class: 'callout' },
+            `${f.irmaosEsperando} cartão(ões) da outra direção estão esperando amanhã, porque a mesma palavra já saiu hoje. `,
+            button('Liberar hoje', () => {
+              ctx.commit((s) => salvarConfig(s, { irmaosNoMesmoDia: true }), { silent: true });
+              ctx.toast('Agora reconhecer e produzir da mesma palavra podem sair no mesmo dia (dá para desligar nas Opções).', 'success');
+              ctx.render();
+            }))
+        : null,
       h('div', { class: 'actions' },
-        button('Voltar ao baralho', () => ctx.go('deck')),
-        podeDesfazer ? button('Desfazer última', acaoDesfazer, { kind: 'ghost' }) : null)));
+        button('Treino livre do que vi hoje', () => iniciarTreino(ctx, { quais: 'hoje', origem: 'todas', direcao: 'misturado' })),
+        button('+10 novos hoje', () => maisNovos(ctx), { kind: 'secondary' }),
+        button('Voltar ao baralho', () => ctx.go('deck'), { kind: 'ghost' }),
+        podeDesfazer ? button('Desfazer última', acaoDesfazer, { kind: 'ghost' }) : null)),
+      h('p', { class: 'hint' }, 'Quer mais? O treino livre repete à vontade sem mexer no agendamento; "+10 novos" traz cartões novos para hoje.'));
     return wrap;
   }
 
@@ -268,6 +314,136 @@ function renderEstudo(ctx) {
   wrap.append(h('p', { class: 'hint' },
     'Seja honesto na nota: "Bom" é lembrar sem ajuda, "Difícil" é lembrar com esforço, "Errei" é qualquer outra coisa. ',
     'Atalhos: Espaço mostra a resposta (e depois vale "Bom"), 1–4 dão a nota, Z desfaz.'));
+  return wrap;
+}
+
+// ---------------------------------------------------------------- intensivo e treino livre
+
+function maisNovos(ctx) {
+  const total = ctx.commit((s) => liberarNovosHoje(s, 10), { silent: true });
+  ctx.toast(`+10 cartões novos liberados hoje (${total} a mais que o normal).`, 'success');
+  ctx.go('deck', { modo: 'estudar' });
+  ctx.render();
+}
+
+function iniciarTreino(ctx, escolha) {
+  const treino = montarTreino(ctx.state, escolha);
+  if (!treino.total) {
+    const msg = { dificeis: 'Nenhum cartão errado ainda. 👏', hoje: 'Você ainda não estudou nenhum cartão hoje.' }[escolha.quais];
+    ctx.toast(msg || 'Nenhum cartão com esse filtro.', 'info');
+    return;
+  }
+  ctx.ui.treinoVirado = null;
+  ctx.commit((s) => salvarTreino(s, { ...treino, escolha }), { silent: true });
+  ctx.go('deck', { modo: 'treino' });
+  ctx.render();
+}
+
+function renderIntensivo(ctx) {
+  const extras = novosExtrasHoje(ctx.state);
+  const andamento = treinoAtual(ctx.state);
+  const escolha = { quais: 'todas', origem: 'todas', direcao: 'misturado' };
+  const opcao = (chave, valores) => h('select', { onChange: (e) => { escolha[chave] = e.target.value; } },
+    ...valores.map(([v, rotulo]) => h('option', { value: v, selected: v === escolha[chave] }, rotulo)));
+  const emAndamento = andamento?.fila?.length;
+  return card('Treino livre e intensivo',
+    h('p', {}, h('strong', {}, 'Treino livre. '),
+      'Passa pelos cartões quantas vezes quiser, embaralhados; o que você errar volta até acertar. ',
+      'Não mexe no agendamento: pode repetir à vontade, durante o dia, sem bagunçar as revisões.'),
+    h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Quais cartões'), opcao('quais', Object.entries(FILTROS_TREINO))),
+    h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'De onde'), opcao('origem', Object.entries(ORIGENS_TREINO))),
+    h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Direção'),
+      opcao('direcao', [['misturado', 'Misturado'], ['reconhecer', '汉字 → português'], ['produzir', 'português → 汉字']])),
+    emAndamento
+      ? h('div', { class: 'callout' },
+          `Treino livre em andamento: faltam ${faltamNoTreino(andamento)} de ${andamento.total}. `,
+          button('Continuar treino', () => ctx.go('deck', { modo: 'treino' })))
+      : null,
+    h('div', { class: 'actions' },
+      button(emAndamento ? 'Começar outro treino' : 'Começar treino livre', () => iniciarTreino(ctx, escolha),
+        { kind: emAndamento ? 'secondary' : 'primary' })),
+    h('p', {}, h('strong', {}, 'Mais cartões novos hoje. '),
+      'Libera 10 cartões novos além do limite, só hoje. Eles entram no agendamento normal.',
+      extras ? ` Hoje você já liberou ${extras} a mais.` : ''),
+    h('div', { class: 'actions' }, button('+10 novos hoje', () => maisNovos(ctx), { kind: 'secondary' })));
+}
+
+function renderTreino(ctx) {
+  const { ui, state } = ctx;
+  const t = treinoAtual(state);
+  const encerrar = () => {
+    ui.treinoVirado = null;
+    ctx.commit((s) => salvarTreino(s, null), { silent: true });
+    ctx.go('deck');
+  };
+  const wrap = h('div', { class: 'stack' });
+  if (!t) {
+    ui.keyHandler = null;
+    wrap.append(card('Treino livre', h('p', {}, 'Nenhum treino em andamento.'),
+      h('div', { class: 'actions' }, button('Voltar ao baralho', () => ctx.go('deck')))));
+    return wrap;
+  }
+  const rascunhos = new Map(state.cardDrafts.map((d) => [d.id, d]));
+
+  if (!t.fila.length) {
+    ui.keyHandler = null;
+    const pct = t.total ? Math.round((t.acertosDePrimeira / t.total) * 100) : 0;
+    wrap.append(card('Treino concluído 🎉',
+      h('p', {}, `${t.total} cartão(ões), ${t.acertosDePrimeira} de primeira (${pct}%), ${t.respondidas} respostas no total.`),
+      t.erradas.length
+        ? h('p', {}, 'Errou alguma vez: ', ...t.erradas.map((x) => h('span', { class: 'mono-zh' }, `${rascunhos.get(x.draftId)?.front || '?'} `)))
+        : h('p', {}, 'Nenhum erro. 太棒了！'),
+      h('div', { class: 'actions' },
+        t.erradas.length ? button('Treinar só os que errei', () => {
+          ctx.commit((s) => salvarTreino(s, { ...treinoDosErros(t), escolha: t.escolha }), { silent: true });
+          ctx.render();
+        }) : null,
+        button('De novo, tudo', () => iniciarTreino(ctx, t.escolha || {}), { kind: t.erradas.length ? 'secondary' : 'primary' }),
+        button('Voltar ao baralho', encerrar, { kind: 'ghost' }))));
+    return wrap;
+  }
+
+  const atual = t.fila[0];
+  const r = rascunhos.get(atual.draftId);
+  const cartao = { modelo: atual.modelo };
+  const cfg = configBaralho(state);
+  // "Virado" fica só na tela, preso à resposta da vez: recarregar volta a frente do cartão.
+  const virado = ui.treinoVirado === t.respondidas;
+  const mostrar = () => {
+    ui.treinoVirado = t.respondidas;
+    if (canSpeak() && cfg.audioAoMostrar) playAudio(r.front);
+    ctx.render();
+  };
+  const marcar = (acertou) => {
+    ctx.commit((s) => responderTreino(treinoAtual(s), acertou), { silent: true });
+    ui.treinoVirado = null;
+    ctx.render();
+  };
+  ui.keyHandler = (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault?.();
+      if (!virado) mostrar(); else marcar(true);
+    } else if (virado && e.key === '1') marcar(false);
+    else if (virado && (e.key === '2' || e.key === '3' || e.key === '4')) marcar(true);
+  };
+
+  const feitas = t.total - faltamNoTreino(t);
+  wrap.append(h('section', { class: 'card baralho-cartao' },
+    h('div', { class: 'baralho-topo' },
+      h('span', { class: 'hint' }, `Treino livre · ${feitas}/${t.total} · ${t.respondidas} respostas`),
+      h('span', { class: 'hint' }, MODELOS[atual.modelo]?.nome || '')),
+    bar((feitas / t.total) * 100),
+    virado ? verso(cartao, r) : frente(cartao, r),
+    virado
+      ? h('div', { class: 'baralho-notas' },
+          h('button', { class: 'btn baralho-nota baralho-nota-1', onClick: () => marcar(false), title: 'Tecla 1' },
+            h('span', { class: 'baralho-nota-int' }, 'volta já'), h('span', {}, 'Errei')),
+          h('button', { class: 'btn baralho-nota baralho-nota-3', onClick: () => marcar(true), title: 'Espaço' },
+            h('span', { class: 'baralho-nota-int' }, 'sai da fila'), h('span', {}, 'Acertei')))
+      : h('div', { class: 'actions' }, button('Mostrar resposta', mostrar)),
+    h('div', { class: 'actions' }, button('Parar', encerrar, { kind: 'ghost', title: 'Encerra e descarta este treino' }))));
+  wrap.append(h('p', { class: 'hint' },
+    'Treino livre não mexe no agendamento. Atalhos: Espaço mostra (e depois vale "Acertei"), 1 = Errei.'));
   return wrap;
 }
 

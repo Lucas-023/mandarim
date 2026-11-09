@@ -74,7 +74,7 @@ export function emptyState(now = new Date().toISOString()) {
     cardExports: [],
     /** Baralho interno (ver baralho.js): agendamento FSRS por cartão e registro de respostas. */
     deck: { cartoes: [], registro: [], config: {} },
-    /** Flashcards das lições do curso (ver vocabulario.js). Separado do baralho e do resto, por ora. */
+    /** Antiga aba Vocabulário. Vazio desde 2026-11-09: curso.js leva o que houver para o baralho (estados antigos e mesclagens). */
     vocabulario: { cartoes: [], registro: [], config: {} },
     /** Prática de fala: autoavaliação por frase (ver fala.js). Nunca vira proficiência. */
     falaRegistro: [],

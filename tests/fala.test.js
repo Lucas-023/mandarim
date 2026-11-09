@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 import { emptyState } from '../src/core/storage.js';
+import { PALAVRAS } from '../src/core/content/vocabLicoes.js';
 import { ingestPack } from '../src/core/packs.js';
 import { resetRegistry } from '../src/core/content/lexicon.js';
 import { validatePack } from '../src/core/packValidation.js';
@@ -52,7 +53,7 @@ test('a fila de fala começa pelas frases de campo do pacote e não repete frase
   const s = estadoComPacote(t);
   const fila = filaDeFala(s, { hoje: HOJE, limite: 50 });
   assert.equal(fila[0].hz, REAL_PACK.fieldPhrases[0].hz);
-  assert.equal(fila[0].origem, 'frase de campo');
+  assert.equal(fila[0].origem, 'frase pronta');
   assert.equal(new Set(fila.map((f) => f.hz)).size, fila.length);
   assert.ok(fila.some((f) => f.origem === 'diálogo'));
   assert.deepEqual(filaDeFala(emptyState(), { hoje: HOJE }), [], 'sem pacote nem cartão, fila vazia');
@@ -170,7 +171,9 @@ test('o validador aceita roleplay bem formado e recusa o malformado', () => {
 
 test('briefing de aluno novo não dá o dicionário como sabido e sugere vocabulário de futebol', () => {
   const b = buildBriefing(emptyState(), { date: HOJE });
-  assert.deepEqual(b.seenWords, []);
+  // Só as palavras do curso, que ele declarou saber; o léxico base não.
+  assert.deepEqual(b.seenWords, PALAVRAS.map((p) => p.hanzi));
+  assert.ok(b.candidateWords.every((c) => !b.seenWords.includes(c.hz)), 'palavra do curso não é sugerida como nova');
   assert.ok(!('knownWords' in b));
   const sugeridas = b.candidateWords.map((c) => c.hz);
   assert.ok(b.candidateWords.length >= 20);
@@ -204,7 +207,12 @@ test('vocabulário acertado no nivelamento conta como visto; o errado não', () 
   const erros = respondidas.filter((r) => !r.certa && r.q.skill === 'vocabulary' && r.q.stage === 'B' && r.q.promptHz);
   assert.ok(acertos.length > 0);
   for (const r of acertos) if (r.q.promptHz.length <= 4) assert.ok(vistas.has(r.q.promptHz), r.q.promptHz);
-  for (const r of erros) assert.ok(!vistas.has(r.q.promptHz) || acertos.some((a) => a.q.promptHz === r.q.promptHz), r.q.promptHz);
+  // Palavra do curso conta como vista de qualquer jeito (declarada sabida).
+  const doCurso = new Set(PALAVRAS.map((p) => p.hanzi));
+  for (const r of erros) {
+    if (doCurso.has(r.q.promptHz)) continue;
+    assert.ok(!vistas.has(r.q.promptHz) || acertos.some((a) => a.q.promptHz === r.q.promptHz), r.q.promptHz);
+  }
 });
 
 test('pedido de amanhã feito antes do pacote de hoje é completado com o que hoje ensinou', () => {

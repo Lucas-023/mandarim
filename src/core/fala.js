@@ -74,14 +74,14 @@ export function frasesDisponiveis(state, { date = null } = {}) {
 
   if (entry) {
     const p = entry.pack;
-    for (const f of p.fieldPhrases || []) add(f, 'frase de campo', f.when);
+    for (const f of p.fieldPhrases || []) add(f, 'frase pronta', f.when);
     for (const e of p.grammarNote?.examples || []) add(e, 'gramática do dia', p.grammarNote.point);
     for (const v of p.vocab || []) if (v.example) add(v.example, 'exemplo do vocabulário', `${v.hz} — ${v.pt}`);
     for (const l of p.dialogue?.lines || []) add(l, 'diálogo', p.dialogue.title);
   }
   for (const outro of (state.packs || []).slice().reverse()) {
     if (entry && outro.date === entry.date) continue;
-    for (const f of outro.pack.fieldPhrases || []) add(f, `frase de campo (${outro.date})`, f.when);
+    for (const f of outro.pack.fieldPhrases || []) add(f, `frase pronta (${outro.date})`, f.when);
   }
   for (const d of state.cardDrafts || []) {
     if (d.kind !== 'sentence' || !['approved', 'exported'].includes(d.status)) continue;

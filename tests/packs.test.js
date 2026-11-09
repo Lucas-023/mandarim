@@ -237,7 +237,17 @@ test('entrada mais longa amplia a janela da segmentação', (t) => {
 
 // ───────────────────────────── ingestão ─────────────────────────────
 
-test('ingerir um pacote acrescenta léxico e cartões pendentes', (t) => {
+test('com "direto no baralho" desligado, os cartões do pacote esperam aprovação', (t) => {
+  t.after(resetRegistry);
+  const state = emptyState();
+  state.deck.config.pacoteDireto = false;
+  ingestPack(state, clonePack());
+  assert.ok(state.cardDrafts.length > 0);
+  assert.ok(state.cardDrafts.every((d) => d.status === 'pending'));
+  assert.equal(state.deck.cartoes.length, 0);
+});
+
+test('ingerir um pacote acrescenta léxico e põe palavras e frases no baralho como cartões novos', (t) => {
   t.after(resetRegistry);
   const state = emptyState();
   const result = ingestPack(state, clonePack());
@@ -245,7 +255,16 @@ test('ingerir um pacote acrescenta léxico e cartões pendentes', (t) => {
   assert.ok(result.vocabAdded.length > 0);
   assert.equal(state.lexiconExtra.length, result.vocabAdded.length);
   assert.ok(result.draftsAdded.length >= REAL_PACK.vocab.length);
-  assert.ok(state.cardDrafts.every((d) => d.status === 'pending'));
+  assert.ok(state.cardDrafts.every((d) => d.status === 'approved'), 'padrão: direto no baralho');
+  const frases = state.cardDrafts.filter((d) => d.kind === 'sentence');
+  assert.ok(frases.length > 0, 'frases prontas também entram');
+  assert.ok(frases.every((d) => !d.tags.includes('futebol') || (REAL_PACK.fieldPhrases.find((f) => f.hz === d.front)?.tags || []).includes('futebol')),
+    'frase pronta não é marcada como futebol à força');
+  for (const d of state.cardDrafts) {
+    const cs = state.deck.cartoes.filter((c) => c.draftId === d.id);
+    assert.equal(cs.length, 2, `${d.front}: reconhecer + produzir`);
+    assert.ok(cs.every((c) => c.estado === 'novo'), 'entram como desconhecidos');
+  }
   assert.ok(state.cardDrafts.every((d) => d.needsReview && /gerad/i.test(d.reviewNotes.join(' '))));
   assert.ok(state.cardDrafts.every((d) => d.tags.includes('gerado')));
 });

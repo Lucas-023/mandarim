@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-07. Testes: **321 passando** (`npm test`).
+> Última atualização: 2026-11-09. Testes: **318 passando** (`npm test`).
 
 ---
 
@@ -20,8 +20,8 @@ local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm in
 para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
-Tamanho atual:  núcleo 7.056 linhas · interface 4.568 · servidor/scripts 1.363 · testes 4.530
-Conteúdo:       154 palavras no léxico base · 77 palavras das lições do curso (aba Vocabulário) ·
+Tamanho atual:  núcleo 7.276 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.530
+Conteúdo:       154 palavras no léxico base · 77 palavras das lições do curso (no Baralho, como já sabidas) ·
                 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -30,14 +30,14 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 321 testes, ~4s, sem rede
+npm test                       # 318 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
 npm run publicar               # monta publicar/ para o GitHub Pages
 npm run seed:demo              # preenche data/state.json com dados FICTÍCIOS
-npm run vocab                  # só os flashcards do Vocabulário (sobe o servidor se preciso)
-npm run vocab:atalho           # põe "Mandarim — Vocabulário" no menu de aplicativos (já instalado)
+npm run vocab                  # só os flashcards do Baralho, modo foco (sobe o servidor se preciso)
+npm run vocab:atalho           # põe "Mandarim — Baralho" no menu de aplicativos (já instalado)
 npm run timer:install          # timer do systemd: gera o pacote às 5h
 npm run caixa                  # atende os pedidos do celular (caixa postal no GitHub)
 npm run caixa:timer            # timer do systemd: confere a caixa a cada 30 min
@@ -94,8 +94,9 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   mediaStore.js         áudios: arquivo no servidor OU IndexedDB
   merge.js              mesclagem de dois aparelhos sem perder histórico
   fsrs.js               FSRS-6: estabilidade, dificuldade, retenção, curto prazo, fuzz (o algoritmo do Anki atual)
-  baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer
-  vocabulario.js        aba Vocabulário: flashcards das lições do curso, isolada do resto (sem XP/pacote/proficiência)
+  baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer, +novos hoje
+  curso.js              palavras das lições do curso → baralho (já sabidas) e migração da antiga aba Vocabulário
+  treino.js             treino livre do baralho: repetição fora do agendamento (não mexe no FSRS)
   fala.js               prática de fala: fila de frases, autoavaliação, conversa simulada (sem proficiência)
   caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
@@ -111,7 +112,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   packValidation.js     schema do pacote gerado (roda no gerador E no app)
   packPipeline.js       orquestração da geração (compartilhada PC/celular)
   briefing.js           o que é enviado ao modelo (e fica auditável); completa pedidos atrasados do celular
-  prompts/pack.js       prompt de sistema versionado (pack-v4)
+  prompts/pack.js       prompt de sistema versionado (pack-v5: foco no cotidiano, futebol ≤ 1/4)
   llmBrowser.js         Claude API direto do navegador, streaming
   secrets.js            chave da API, por aparelho, FORA do estado
   ankiExport.js         TSV/CSV + histórico de exportações
@@ -126,13 +127,13 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/vocabLicoes.js  77 palavras das lições 1–5 do curso (de vocab.png), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao, caixa, baralho, vocabulario, falar)
+                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar)
 tools/generate.js       gerador por linha de comando
 tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 321 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 318 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -352,7 +353,7 @@ dizer a partir do português (recuperação ativa falada) e conversa simulada. D
 **Se mudar:** dar evidência de habilidade pela autoavaliação viola §3.2; guardar as gravações exige
 cota e limpeza que não existem.
 
-### 3.24 Aba Vocabulário: baralho próprio, isolado de propósito
+### 3.24 Aba Vocabulário: baralho próprio, isolado de propósito (SUPERADO em 2026-11-09, ver §3.25)
 
 O usuário trouxe a lista de vocabulário do curso (`vocab.png`, lições 1–5) e pediu "uma aba apenas de
 flash card" com exatamente essas palavras, e disse que a ligação com o resto do app vem depois.
@@ -385,6 +386,46 @@ flash card" com exatamente essas palavras, e disse que a ligação com o resto d
 juntar com `state.deck` faz as palavras do curso dependerem de `cardDrafts`. Dar XP
 aqui sem pensar duplica o XP diário de revisão com o Baralho.
 
+### 3.25 Um baralho só: curso como já sabido, pacote direto como novo
+
+O usuário pediu (2026-11-09) para centralizar tudo no Baralho: as tarefas do pacote devem pôr
+palavras no baralho sozinhas, as 77 do curso podem ser tomadas como sabidas e ficar lá "para não
+esquecer", e o que ele sabe tem de ir para o gerador montar frases com isso + palavras novas. Também
+disse que futebol "não precisa ser central": o foco é o chinês do cotidiano. Decisões:
+- **Curso vira rascunho aprovado com id fixo `curso:<汉字>`** (`src/core/curso.js`). Fixo porque
+  os dois aparelhos migram cada um por si; ids iguais fazem a mesclagem juntar. Palavra que já tinha
+  rascunho (de pacote ou à mão) é aproveitada, não duplicada. Rejeitada continua rejeitada, e
+  `deck.cursoIncluido` (unido na mesclagem) impede que palavra excluída volte.
+- **Progresso da aba antiga vai junto**: cartão `汉字:modelo` com estudo vira `curso:汉字:modelo`
+  com o mesmo S/D/due; o registro de respostas também (sem o retrato de desfazer). Depois
+  `state.vocabulario` fica vazio. Se uma mesclagem trouxer de volta cartões de um aparelho antigo,
+  `precisaIncorporarCurso` dispara de novo e vence a revisão mais recente.
+- **Nunca estudado = já sabido** (escolha do usuário entre "sabido" e "novo"): estado `revisao`,
+  memória inicial de um "Bom" (`memoriaInicial(3)`), `conhecidoDeclarado: true`, `reps: 0`, e
+  NENHUMA entrada no registro (declarar não é responder). Espalhado em 7 dias por direção
+  (reconhecer nos dias 1–7, produzir nos 8–14; se não sobrou reconhecer, produzir começa amanhã),
+  para não chegarem 154 cartões no mesmo dia. Palavra que entrar depois (lição 6+) nasce **nova**.
+  Nos dados do PC: 87 cartões com progresso migrados, 113 respostas, 67 "produzir" como sabidos.
+- **Pacote direto no baralho** (`deck.config.pacoteDireto`, padrão verdadeiro): palavras E frases
+  prontas entram aprovadas, como cartões novos ("tudo como desconhecido", nas palavras dele). A
+  especificação (§8.6 do CLAUDE.md) exige revisão antes de adicionar em massa "a menos que o
+  usuário ative explicitamente": ele ativou, e a opção desliga nas Opções do baralho. Na primeira
+  incorporação, rascunhos pendentes vindos de pacote também entram (texto colado continua pendente).
+- **Briefing**: as 77 vão sempre em `seenWords` (no fim da lista, para o corte de 400 não levá-las),
+  então não são sugeridas como novas e o prompt manda montar as frases com elas.
+- **Prompt pack-v5**: cotidiano é o tema principal; futebol no máximo ~1 em 4 itens, com dias sem
+  futebol; `fieldPhrases` deixou de ser "frases de campo" e virou "frases prontas do dia a dia"
+  (o nome do campo no JSON ficou, para não quebrar pacotes antigos). Na ingestão, frase pronta não
+  ganha mais a etiqueta `futebol` à força. Na interface, "Frases prontas".
+- **Treino livre e intensivo saíram do Vocabulário para o Baralho** (`src/core/treino.js`, +10 novos
+  hoje, irmãos no mesmo dia): mesmas regras (§3.24), agora com filtros "o que vi hoje" e por origem.
+  O treino continua sem tocar no FSRS nem dar XP.
+- **Aba Vocabulário removida**; `#/vocab` virou apelido de `#/deck` (o atalho do Linux e links
+  salvos continuam abrindo, no modo foco). O Baralho abre sem onboarding, como o Vocabulário abria.
+**Se mudar:** gerar o id do curso com `uid()` duplica as 77 palavras na primeira mesclagem; criar
+entradas no registro para os "sabidos" inventa respostas e infla a retenção; tirar o curso do fim
+de `seenWords` faz o corte apagá-lo quando o histórico crescer.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -410,6 +451,7 @@ aqui sem pensar duplica o XP diário de revisão com o Baralho.
 | 17 | Correção: no modo servidor, nenhuma gravação funcionava desde 13/10 (estado > 64 KB com `keepalive`); agora `keepalive` só abaixo de 60 KB, medido em bytes (313 → 314) | relato: "falha ao salvar fetch toda vez que respondo" |
 | 18 | FSRS-4.5 → **FSRS-6** (curto prazo, decaimento w20), fuzz e intervalo máximo de 100 anos como no Anki, "Difícil" nos passos corrigido; vetores oficiais do py-fsrs nos testes. Vale para Baralho e Vocabulário. Cartões antigos seguem com o S/D que tinham (314 → 318) | pedido: "se não for igual ao Anki, deixe igual" |
 | 19 | Treino livre salvo no estado (sobrevive a recarregar, botão "Continuar treino"); opção de reconhecer e produzir no mesmo dia, oferecida no fim do dia (318 → 321) | pergunta: "se eu recarregar vai esquecer tudo? queria treinar com todos sem refazer o reconhecimento" |
+| 20 | **Um baralho só**: as 77 palavras do curso entram no Baralho como já sabidas (progresso da aba Vocabulário migrado), palavras e frases do pacote entram sozinhas como cartões novos, curso vai como `seenWords` no briefing, treino livre e "+10 novos" no Baralho, aba Vocabulário removida (`#/vocab` → `#/deck`), prompt pack-v5 com foco no cotidiano (321 → 318: saíram os testes da aba, entraram `curso.test.js`) | pedido: "centralizar tudo no mesmo", "palavras sabidas como informação para as tarefas", "futebol não precisa ser central" |
 
 ---
 
@@ -424,11 +466,13 @@ não usa esse dado. Então um cartão revisado no Anki continua aparecendo como 
 o histórico, empurrar o `due` dos itens correspondentes. Cuidado: não inventar `reps`/`ease` a
 partir de dados que o add-on não dá.
 
-### 5.0 Ligar a aba Vocabulário ao resto do app
-Hoje ela é isolada (§3.24). O que falta, quando o usuário quiser: XP por sessão (sem duplicar o
-`review_session` do Baralho no mesmo dia), ponte com `schedule.js` como a do Baralho, palavras
-estudadas aqui entrando como `seenWords` no briefing, resumo no Painel. Lições 6+ entram como
-objetos novos em `content/vocabLicoes.js`. Confirmar com o usuário o 你 repetido da lição 1.
+### 5.0 Palavras do curso ainda não estão no agendador do pacote
+Desde §3.25 elas estão no Baralho e vão como `seenWords`, mas não existem em `schedule.js`: o pacote
+as usa nas frases, mas nunca as traz de volta como `review.dueWords` (o Baralho cuida da revisão).
+Se quiser que o pacote também as reencontre, o caminho é `introduceItems` para as 77 na primeira
+incorporação, com `introducedAt` antigo, sem `reps` inventados. Lições 6+ entram como objetos novos
+em `content/vocabLicoes.js` (viram cartões novos sozinhas). Confirmar com o usuário o 你 repetido da
+lição 1.
 
 ### 5.1b Baralho: próximos passos naturais
 `src/core/baralho.js` cobre o essencial do Anki. O que falta, em ordem de valor: otimizar os pesos do
@@ -558,6 +602,9 @@ Registradas para ninguém cair de novo.
     `baralho.test.js`.
 24. **Inserir linha numa tabela casando com o fim de outra linha** quebra a tabela se a linha casada
     não terminar ali (a §4 perdeu o fim da linha 14 assim). Case com a linha inteira, `\n` incluso.
+25. **Todo estado novo ganha 154 cartões do curso ao abrir o Baralho** (§3.25). Teste de interface
+    que espera baralho vazio, ou conta cartões, precisa marcar o curso como já incorporado:
+    `s.deck.cursoIncluido = PALAVRAS.map((p) => p.hanzi)` (é o `semCurso()` de `tests/ui.test.js`).
 
 ---
 

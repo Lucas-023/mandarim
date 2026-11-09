@@ -14,6 +14,7 @@ import { errorTags } from './exercises.js';
 import { LEXICON, lookup } from './content/lexicon.js';
 import { QUESTIONS } from './content/questions.js';
 import { frasesTravadas } from './fala.js';
+import { palavrasDoCurso } from './curso.js';
 import { dayKey } from './xp.js';
 import { dueItems, upcomingItems, leeches, scheduleStats, seenGrammarIds, isGrammarRef, grammarIdFromRef } from './schedule.js';
 import { nextGrammarPoints, grammarProgress, grammarPoint } from './content/grammar.js';
@@ -39,8 +40,9 @@ const TAGS_POR_OBJETIVO = {
 
 /**
  * Palavras que o aluno já ENCONTROU, com evidência registrada: apresentadas por
- * um pacote ou cobradas num exercício (agendador), aprovadas como cartão, ou
- * acertadas no nivelamento.
+ * um pacote ou cobradas num exercício (agendador), aprovadas como cartão,
+ * acertadas no nivelamento, ou da lista do curso (o aluno declarou que sabe; é
+ * com elas que as frases do pacote devem ser montadas).
  *
  * O léxico base NÃO entra: ele é o dicionário do app, não o que o aluno sabe.
  * Mandá-lo inteiro como "conhecido" fazia o modelo nunca ensinar 传球, 守门员,
@@ -62,7 +64,10 @@ export function palavrasVistas(state) {
   const dosCartoes = (state.cardDrafts || [])
     .filter((d) => d.status === 'approved' || d.status === 'exported')
     .map((d) => d.front);
-  return dedupe([...doNivelamento, ...doAgendador, ...dosCartoes]);
+  // O curso vai sempre no fim: o corte de MAX_SEEN tira do começo, e essas são a base.
+  const curso = palavrasDoCurso();
+  const doCurso = new Set(curso);
+  return [...dedupe([...doNivelamento, ...doAgendador, ...dosCartoes]).filter((w) => !doCurso.has(w)), ...curso];
 }
 
 /**

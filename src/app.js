@@ -22,17 +22,16 @@ import { renderActivities } from './ui/activities.js';
 import { renderHistory } from './ui/history.js';
 import { renderSettings } from './ui/settings.js';
 import { renderPack } from './ui/pack.js';
-import { renderBaralho } from './ui/baralho.js';
+import { renderBaralho, avisarIncorporacao } from './ui/baralho.js';
 import { renderFalar } from './ui/falar.js';
-import { renderVocabulario } from './ui/vocabulario.js';
 import { soltarMicrofone } from './ui/recorder.js';
 import { sincronizarCartoes, precisaSincronizar } from './core/baralho.js';
+import { incorporarCurso, precisaIncorporarCurso } from './core/curso.js';
 import { sincronizarCaixa, agendarEnvio, descarregarEnvio } from './ui/caixa.js';
 
 const VIEWS = {
   dashboard: { label: 'Painel', render: renderDashboard },
   study: { label: 'Estudar', render: renderStudy },
-  vocab: { label: 'Vocabulário', render: renderVocabulario },
   deck: { label: 'Baralho', render: renderBaralho },
   speak: { label: 'Falar', render: renderFalar },
   cards: { label: 'Criar cartões', render: renderCards },
@@ -144,16 +143,22 @@ let current = { view: 'dashboard', params: {} };
 /** Estado efêmero da UI (exercício em andamento, rascunhos gerados etc.). */
 const ui = {};
 
+/** Links antigos: a aba Vocabulário virou parte do Baralho (2026-11-09). */
+const ALIASES = { vocab: 'deck' };
+
 function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '');
-  const [view, query] = raw.split('?');
+  const [bruto, query] = raw.split('?');
+  const view = ALIASES[bruto] || bruto;
   const params = Object.fromEntries(new URLSearchParams(query || ''));
+  // Modos que só existiam no Vocabulário: "lista" agora é o navegador do baralho.
+  if (bruto === 'vocab' && params.modo === 'lista') params.modo = 'navegar';
   return { view: VIEWS[view] ? view : 'dashboard', params };
 }
 
 function go(view, params = {}) {
-  // Modo foco (só os flashcards do Vocabulário) continua enquanto se navega dentro da aba.
-  if (ui.foco && view === 'vocab') params = { ...params, foco: '1' };
+  // Modo foco (só os flashcards do Baralho) continua enquanto se navega dentro da aba.
+  if (ui.foco && view === 'deck') params = { ...params, foco: '1' };
   const query = new URLSearchParams(params).toString();
   location.hash = `#/${view}${query ? `?${query}` : ''}`;
 }
@@ -210,14 +215,14 @@ function render() {
 
   // Onboarding é obrigatório antes de qualquer outra tela, exceto Configurações
   // (num aparelho novo é lá que se cola a chave ou se restaura um backup) e
-  // Vocabulário, que é isolado do resto e pode ser aberto sozinho no computador.
-  if (!state.profile.onboardingDone && !['onboarding', 'settings', 'vocab'].includes(current.view)) {
+  // Baralho, que já vem com as palavras do curso e pode ser aberto sozinho.
+  if (!state.profile.onboardingDone && !['onboarding', 'settings', 'deck'].includes(current.view)) {
     current = { view: 'onboarding', params: {} };
     location.hash = '#/onboarding';
   }
 
-  // Modo foco: #/vocab?foco=1 mostra só os flashcards, sem menu, rodapé nem avisos.
-  ui.foco = current.view === 'vocab' && current.params.foco === '1';
+  // Modo foco: #/deck?foco=1 (ou o antigo #/vocab?foco=1) mostra só os flashcards, sem menu, rodapé nem avisos.
+  ui.foco = current.view === 'deck' && current.params.foco === '1';
   document.body.classList.toggle('foco', ui.foco);
 
   renderNav();
@@ -386,10 +391,13 @@ async function registrarServiceWorker() {
 (async () => {
   store = await createStore();
   restoreLexicon(store.state);
+  // Palavras do curso (e o progresso da antiga aba Vocabulário) entram no baralho.
+  if (precisaIncorporarCurso(store.state)) ui.incorporacao = commit((s) => incorporarCurso(s), { silent: true });
   // Cartões aprovados antes de o baralho existir entram nele já na abertura.
   if (precisaSincronizar(store.state)) commit((s) => sincronizarCartoes(s), { silent: true });
   current = parseHash();
   render();
+  if (ui.incorporacao) avisarIncorporacao(ctx(), ui.incorporacao);
   syncTodayPack();
   sincronizarCaixa(ctx(), { automatico: true });
   // No iPhone o app instalado volta do fundo sem recarregar: sincroniza ao reaparecer.

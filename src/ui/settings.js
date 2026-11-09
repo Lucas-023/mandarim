@@ -150,7 +150,7 @@ export function renderSettings(ctx) {
   const llm = { ...(state.settings.llm || {}) };
   wrap.append(card('Geração automática de conteúdo (LLM)',
     h('p', { class: 'hint' },
-      'Um pacote por dia — vocabulário, diálogo, exercícios, frases de campo — gerado a partir dos ' +
+      'Um pacote por dia — vocabulário, diálogo, exercícios, frases prontas — gerado a partir dos ' +
       'seus erros recentes e das lacunas das suas conversas. O conteúdo é validado contra um schema ' +
       'antes de entrar no app, e os cartões continuam exigindo sua aprovação.'),
     h('div', { class: 'callout' },
