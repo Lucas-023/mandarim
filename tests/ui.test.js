@@ -61,7 +61,9 @@ test('onboarding exige as perguntas obrigatórias antes de seguir', () => {
   const ctx = makeCtx();
   const view = renderOnboarding(ctx);
   assert.match(view.textContent, /Questionário inicial/);
-  assert.match(view.textContent, /não tem áudio nem reconhecimento de fala/);
+  assert.match(view.textContent, /Não há reconhecimento de fala/);
+  const texto = view.textContent;
+  assert.ok(texto.indexOf('O que priorizar') < texto.indexOf('Questionário inicial'), 'a ordem dos objetivos vem antes do questionário');
   view.find(byButton('Salvar e fazer o nivelamento')).click();
   assert.equal(ctx.state.profile.onboardingDone, false);
   assert.equal(ctx.toasts.at(-1).k, 'error');

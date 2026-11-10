@@ -87,7 +87,10 @@ export function palavrasCandidatas(state, { excluir = [], maxLevel = 2, limite =
   const rank = (e) => Math.min(SEM_OBJETIVO, ...e.tags.map((t) => rankTag.get(t) ?? SEM_OBJETIVO));
 
   // Um grupo por objetivo, cada um do mais fácil ao mais difícil. Rodízio entre
-  // os grupos: senão o primeiro objetivo ocupa todas as vagas e o futebol some.
+  // os grupos, PONDERADO pela prioridade: com 3 temas, o 1º leva 3 por rodada,
+  // o 2º leva 2, o 3º leva 1. Sem rodízio o primeiro objetivo ocupava tudo e o
+  // tema do fim sumia; com rodízio igual, o último (futebol, para ele) levava
+  // um terço das sugestões, e ele pediu "só um toque" (2026-11-10).
   const grupos = new Map();
   for (const e of LEXICON.filter((x) => !fora.has(x.hz) && x.level <= maxLevel + 1)) {
     const r = rank(e);
@@ -100,7 +103,9 @@ export function palavrasCandidatas(state, { excluir = [], maxLevel = 2, limite =
     .map(([, lista]) => lista.sort((a, b) => a.level - b.level));
   const saida = [];
   while (saida.length < limite && filas.some((f) => f.length)) {
-    for (const f of filas) if (f.length && saida.length < limite) saida.push(f.shift());
+    filas.forEach((f, i) => {
+      for (let k = 0; k < filas.length - i && f.length && saida.length < limite; k += 1) saida.push(f.shift());
+    });
   }
   for (const e of (grupos.get(SEM_OBJETIVO) || []).sort((a, b) => a.level - b.level)) {
     if (saida.length >= limite) break;
@@ -184,7 +189,8 @@ export function buildBriefing(state, { date = dayKey(), includeGaps = true, rece
       ? { code: attempt.result.overall.code, label: attempt.result.overall.label }
       : { code: 'desconhecido', label: 'nivelamento não feito' },
     minutesPerDay: state.profile.minutesPerDay,
-    goals: state.profile.goals.map((g) => g.id),
+    // Em ordem de prioridade: o prompt dosa os temas por esta ordem.
+    goals: state.profile.goals.slice().sort((a, b) => a.priority - b.priority).map((g) => g.id),
     focusTags: state.plan?.focusTags || [],
     skills: skills.map((s) => ({
       skill: s.skill,

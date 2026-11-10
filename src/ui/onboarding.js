@@ -26,8 +26,8 @@ export function renderOnboarding(ctx) {
       'Nada é estimado sem dados.'),
     h('ul', { class: 'tight' },
       h('li', {}, 'Explicações em português; chinês simplificado com pinyin disponível.'),
-      h('li', {}, 'Esta versão não tem áudio nem reconhecimento de fala: compreensão auditiva e produção oral ficam marcadas como não avaliadas.'),
-      h('li', {}, 'Seus dados ficam apenas neste navegador (localStorage). Nada é enviado para fora.')),
+      h('li', {}, 'O áudio é a voz sintetizada do navegador. Não há reconhecimento de fala: a produção oral fica marcada como não avaliada.'),
+      h('li', {}, 'Seus dados ficam neste aparelho. Para gerar o pacote do dia, só um resumo do seu desempenho sai daqui (detalhes em Configurações).')),
   ));
 
   wrap.append(card('Quem está estudando',
@@ -35,25 +35,10 @@ export function renderOnboarding(ctx) {
       h('input', { type: 'text', value: name, placeholder: 'Seu nome', onInput: (e) => { name = e.target.value; } })),
   ));
 
-  const qCard = card('Questionário inicial (Etapa A)');
-  qCard.append(h('p', { class: 'hint' }, 'As perguntas marcadas como opcionais podem ser puladas.'));
-  for (const q of QUESTIONNAIRE) {
-    const options = [
-      { value: '', label: q.optional ? 'Prefiro não responder' : 'Selecione…' },
-      ...q.options.map((o) => ({ value: o, label: o })),
-    ];
-    qCard.append(field(
-      q.label + (q.optional ? ' (opcional)' : ''),
-      select(options, answers[q.id] || '', (v) => {
-        answers[q.id] = v;
-        ctx.ui.onboardingAnswers = answers;
-      }),
-    ));
-  }
-  wrap.append(qCard);
-
-  const goalsCard = card('Prioridade dos objetivos');
-  goalsCard.append(h('p', { class: 'hint' }, 'A ordem muda o que o sistema recomenda primeiro. Use as setas para reordenar.'));
+  const goalsCard = card('O que priorizar');
+  goalsCard.append(h('p', { class: 'hint' },
+    'A ordem dosa o conteúdo do pacote do dia: o primeiro objetivo dá o tema principal, e o último entra só como um toque leve. ',
+    'Use as setas para reordenar. Dá para mudar depois em Configurações → Objetivos e prioridades.'));
   const list = h('ol', { class: 'goal-list' });
   const paint = () => {
     list.replaceChildren(...goals.map((g, i) => h('li', {},
@@ -74,6 +59,24 @@ export function renderOnboarding(ctx) {
   paint();
   goalsCard.append(list);
   wrap.append(goalsCard);
+
+  const qCard = card('Questionário inicial (Etapa A)');
+  qCard.append(h('p', { class: 'hint' }, 'As perguntas marcadas como opcionais podem ser puladas.'));
+  for (const q of QUESTIONNAIRE) {
+    const options = [
+      { value: '', label: q.optional ? 'Prefiro não responder' : 'Selecione…' },
+      ...q.options.map((o) => ({ value: o, label: o })),
+    ];
+    qCard.append(field(
+      q.label + (q.optional ? ' (opcional)' : ''),
+      select(options, answers[q.id] || '', (v) => {
+        answers[q.id] = v;
+        ctx.ui.onboardingAnswers = answers;
+      }),
+    ));
+  }
+  wrap.append(qCard);
+
 
   wrap.append(h('div', { class: 'actions' },
     button('Salvar e fazer o nivelamento', () => {

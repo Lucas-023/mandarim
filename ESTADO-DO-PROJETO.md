@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-09. Testes: **318 passando** (`npm test`).
+> Última atualização: 2026-11-10. Testes: **319 passando** (`npm test`).
 
 ---
 
@@ -30,7 +30,7 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 318 testes, ~4s, sem rede
+npm test                       # 319 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -112,7 +112,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   packValidation.js     schema do pacote gerado (roda no gerador E no app)
   packPipeline.js       orquestração da geração (compartilhada PC/celular)
   briefing.js           o que é enviado ao modelo (e fica auditável); completa pedidos atrasados do celular
-  prompts/pack.js       prompt de sistema versionado (pack-v5: foco no cotidiano, futebol ≤ 1/4)
+  prompts/pack.js       prompt de sistema versionado (pack-v6: temas dosados pela ordem dos objetivos)
   llmBrowser.js         Claude API direto do navegador, streaming
   secrets.js            chave da API, por aparelho, FORA do estado
   ankiExport.js         TSV/CSV + histórico de exportações
@@ -133,7 +133,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 318 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 319 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -422,6 +422,18 @@ disse que futebol "não precisa ser central": o foco é o chinês do cotidiano. 
   O treino continua sem tocar no FSRS nem dar XP.
 - **Aba Vocabulário removida**; `#/vocab` virou apelido de `#/deck` (o atalho do Linux e links
   salvos continuam abrindo, no modo foco). O Baralho abre sem onboarding, como o Vocabulário abria.
+**Correção em 2026-11-10 (pack-v6):** o usuário achou o futebol forte demais e não encontrou onde
+ordenar os objetivos. A ordem existia, mas quase não pesava: `candidateWords` dividia as vagas em
+partes iguais por tema (futebol em 3º ainda levava 10 de 30) e o limite "≤ 1/4" do prompt era fixo.
+Agora (a) o rodízio é **ponderado pela prioridade** (com 3 temas, 3/2/1 por rodada: futebol em
+último fica com 5 de 30; em 1º, com 15); (b) o briefing manda `goals` **ordenado por prioridade** e o
+prompt dosa os temas por essa ordem, com futebol fora do 1º lugar limitado a 2 palavras, 1 frase e
+1 exercício por pacote; (c) o **exemplo de JSON do prompt deixou de ser todo de futebol** (传球,
+比赛, zagueiro), porque o modelo copia o tema do exemplo; (d) o cartão de prioridades subiu para o
+topo do onboarding, com texto dizendo o que a ordem faz.
+**Se mudar:** voltar ao rodízio igual devolve um terço das sugestões ao último tema; exemplo do
+prompt com um tema só puxa todos os pacotes para ele.
+
 **Se mudar:** gerar o id do curso com `uid()` duplica as 77 palavras na primeira mesclagem; criar
 entradas no registro para os "sabidos" inventa respostas e infla a retenção; tirar o curso do fim
 de `seenWords` faz o corte apagá-lo quando o histórico crescer.
@@ -452,6 +464,7 @@ de `seenWords` faz o corte apagá-lo quando o histórico crescer.
 | 18 | FSRS-4.5 → **FSRS-6** (curto prazo, decaimento w20), fuzz e intervalo máximo de 100 anos como no Anki, "Difícil" nos passos corrigido; vetores oficiais do py-fsrs nos testes. Vale para Baralho e Vocabulário. Cartões antigos seguem com o S/D que tinham (314 → 318) | pedido: "se não for igual ao Anki, deixe igual" |
 | 19 | Treino livre salvo no estado (sobrevive a recarregar, botão "Continuar treino"); opção de reconhecer e produzir no mesmo dia, oferecida no fim do dia (318 → 321) | pergunta: "se eu recarregar vai esquecer tudo? queria treinar com todos sem refazer o reconhecimento" |
 | 20 | **Um baralho só**: as 77 palavras do curso entram no Baralho como já sabidas (progresso da aba Vocabulário migrado), palavras e frases do pacote entram sozinhas como cartões novos, curso vai como `seenWords` no briefing, treino livre e "+10 novos" no Baralho, aba Vocabulário removida (`#/vocab` → `#/deck`), prompt pack-v5 com foco no cotidiano (321 → 318: saíram os testes da aba, entraram `curso.test.js`) | pedido: "centralizar tudo no mesmo", "palavras sabidas como informação para as tarefas", "futebol não precisa ser central" |
+| 21 | Prioridade dos objetivos passa a dosar o conteúdo: rodízio ponderado em `candidateWords`, `goals` ordenado no briefing, prompt pack-v6 (futebol fora do 1º lugar = toque leve; exemplos do prompt no cotidiano); cartão de prioridades no topo do onboarding; texto de boas-vindas corrigido (havia áudio e envio de resumo desde a rodada 5/11) (318 → 319) | "prioridade menor no futebol, foco no cotidiano com um leve toque" e "não vi a parte de ordenar" |
 
 ---
 

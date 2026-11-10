@@ -182,6 +182,21 @@ test('briefing de aluno novo não dá o dicionário como sabido e sugere vocabul
   assert.ok(b.candidateWords.every((c) => c.py && c.pt), 'sugestão leva pinyin e tradução');
 });
 
+test('a prioridade dos objetivos dosa as sugestões: futebol em último é só um toque', () => {
+  const s = emptyState(); // padrão: cotidiano, conversa, futebol
+  const conta = (b) => b.candidateWords.filter((c) => c.tags.includes('futebol')).length;
+  const ultimo = buildBriefing(s, { date: HOJE });
+  assert.ok(conta(ultimo) > 0, 'ainda entra um pouco');
+  assert.ok(conta(ultimo) <= ultimo.candidateWords.length / 5, `futebol em último: ${conta(ultimo)} de ${ultimo.candidateWords.length}`);
+  assert.deepEqual(ultimo.goals.slice(0, 3), ['ouvir_cotidiano', 'conversar_simples', 'futebol']);
+
+  // Mesmo com o array fora de ordem, o briefing manda em ordem de prioridade.
+  s.profile.goals = [{ id: 'conversar_simples', priority: 3 }, { id: 'ouvir_cotidiano', priority: 2 }, { id: 'futebol', priority: 1 }];
+  const primeiro = buildBriefing(s, { date: HOJE });
+  assert.deepEqual(primeiro.goals, ['futebol', 'ouvir_cotidiano', 'conversar_simples']);
+  assert.ok(conta(primeiro) > conta(ultimo) * 2, 'em primeiro, o futebol ganha a maior parte');
+});
+
 test('palavra apresentada por pacote vira vista e sai das sugestões', (t) => {
   const s = estadoComPacote(t);
   const b = buildBriefing(s, { date: addDays(HOJE, 1) });

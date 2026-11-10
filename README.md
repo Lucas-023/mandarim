@@ -263,7 +263,7 @@ quando.
 
 Vocabulário com pinyin, tradução e frase de exemplo; um diálogo de 6 a 12 falas; 6 a 10 exercícios
 (múltipla escolha, completar frase e produção escrita); pares de tom que você provavelmente confunde;
-frases prontas do dia a dia com o momento de usar cada uma (futebol só de vez em quando: o foco é o cotidiano); uma nota de gramática; e observações do
+frases prontas do dia a dia com o momento de usar cada uma (os temas seguem a ordem dos seus objetivos em Configurações: o primeiro dá o tema do dia, e o futebol, fora do 1º lugar, é só um toque leve); uma nota de gramática; e observações do
 gerador sobre seus erros recentes.
 
 Exemplo real, do pacote gerado a partir do estado de demonstração — o modelo pegou a lacuna anotada

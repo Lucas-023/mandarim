@@ -20,6 +20,9 @@ export function renderSettings(ctx) {
   // --- Objetivos ---
   const goals = [...state.profile.goals];
   const goalsCard = card('Objetivos e prioridades');
+  goalsCard.append(h('p', { class: 'hint' },
+    'A ordem dosa o conteúdo do pacote do dia: o primeiro objetivo dá o tema principal, e o último entra só como um toque leve. ',
+    'Vale a partir do próximo pacote gerado.'));
   const list = h('ol', { class: 'goal-list' });
   const paint = () => {
     list.replaceChildren(...goals.map((g, i) => h('li', {},
