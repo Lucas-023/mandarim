@@ -24,8 +24,9 @@ const INICIO = new Date(2026, 10, 9, 9, 0, 0);
 const minutos = (d, n) => new Date(d.getTime() + n * 60000);
 const dias = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const NPAL = PALAVRAS.length;
-/** Palavras das lições que ele declarou saber (1–5): só essas nascem "já sabidas". */
+/** Palavras das lições que ele declarou saber (1–7 desde 2026-11-14): nascem "já sabidas". */
 const NSAB = PALAVRAS.filter((p) => p.licao <= ULTIMA_LICAO_SABIDA).length;
+const N15 = PALAVRAS.filter((p) => p.licao <= 5).length;
 
 /** Cartão da antiga aba Vocabulário, já estudado. */
 function cartaoVocab(hanzi, modelo, extra = {}) {
@@ -38,7 +39,9 @@ function cartaoVocab(hanzi, modelo, extra = {}) {
 
 test('lista do curso: 7 lições, palavras únicas, todas com pinyin e tradução', () => {
   assert.deepEqual(LICOES.map((l) => l.numero), [1, 2, 3, 4, 5, 6, 7]);
-  assert.equal(NSAB, 84, '77 da lista original + 7 da revisão para a prova');
+  assert.equal(N15, 84, '77 da lista original + 7 da revisão para a prova');
+  assert.equal(ULTIMA_LICAO_SABIDA, 7, 'ele já estudou as lições 6–7 em aula');
+  assert.equal(NSAB, NPAL);
   assert.ok(NPAL > 250, `lições 6 e 7 dos slides: ${NPAL}`);
   // Vocabulário oficial primeiro, extras dos slides no fim da fila de novos.
   const primeiroExtra = PALAVRAS.findIndex((p) => p.extra);
@@ -52,7 +55,7 @@ test('lista do curso: 7 lições, palavras únicas, todas com pinyin e traduçã
   }
 });
 
-test('aparelho novo: as lições 1–5 entram como já sabidas, espalhadas, sem inventar respostas; 6+ como novas', () => {
+test('aparelho novo: as lições sabidas entram como já sabidas, espalhadas, sem inventar respostas', () => {
   const s = emptyState();
   assert.equal(precisaIncorporarCurso(s), true);
   const rel = incorporarCurso(s, { agora: INICIO });
@@ -66,7 +69,8 @@ test('aparelho novo: as lições 1–5 entram como já sabidas, espalhadas, sem 
   const sabidos = s.deck.cartoes.filter((c) => licao.get(c.draftId) <= ULTIMA_LICAO_SABIDA);
   const novos = s.deck.cartoes.filter((c) => licao.get(c.draftId) > ULTIMA_LICAO_SABIDA);
   assert.ok(sabidos.every((c) => c.estado === 'revisao' && c.conhecidoDeclarado && c.reps === 0));
-  assert.ok(novos.every((c) => c.estado === 'novo' && !c.conhecidoDeclarado), 'lição 6+ não é declarada sabida');
+  assert.ok(novos.every((c) => c.estado === 'novo' && !c.conhecidoDeclarado), 'lição além da sabida não é declarada');
+  assert.equal(s.deck.licoesSabidasAte, ULTIMA_LICAO_SABIDA);
   assert.equal(s.deck.registro.length, 0, 'declarar que sabe não é responder');
   assert.equal(precisaIncorporarCurso(s), false);
 
@@ -79,7 +83,7 @@ test('aparelho novo: as lições 1–5 entram como já sabidas, espalhadas, sem 
   assert.ok(prod.every((d) => d > DIAS_ESPALHAR && d <= DIAS_ESPALHAR * 2));
   const hojeFila = fila(s, { agora: INICIO });
   assert.equal(hojeFila.contagem.revisao, 0, 'hoje nada do que ele sabe cobra revisão');
-  assert.equal(hojeFila.rascunho.front, '想', 'o primeiro novo é o primeiro 生词 da lição 6');
+  assert.equal(hojeFila.contagem.novos, 0, 'nada do curso fica na fila de novos');
   const amanha = fila(s, { agora: dias(INICIO, 1) });
   assert.ok(amanha.contagem.revisao > 0 && amanha.contagem.revisao <= Math.ceil(NSAB / DIAS_ESPALHAR));
   const primeiraRevisao = sabidos.slice().sort((x, y) => x.due.localeCompare(y.due) || x.criadoEm.localeCompare(y.criadoEm))[0];
@@ -319,7 +323,7 @@ test('tela: abrir o baralho num aparelho novo traz o curso e avisa o que fez', (
   const view = renderBaralho(ctx);
   assert.equal(ctx.state.deck.cartoes.length, NPAL * 2);
   assert.match(ctx.toasts.at(-1).m, new RegExp(`${NSAB * 2} cartões das lições do curso entraram como já sabidos`));
-  assert.match(ctx.toasts.at(-1).m, new RegExp(`${(NPAL - NSAB) * 2} cartões novos do curso`));
+  assert.doesNotMatch(ctx.toasts.at(-1).m, /cartões novos do curso/);
   assert.match(view.textContent, /Treino livre/);
   assert.match(view.textContent, /Palavras do curso/);
   renderBaralho(ctx);
@@ -393,4 +397,68 @@ test('léxico base inclui as palavras do curso; a entrada escrita à mão vence;
   assert.ok(lookup('牺牲').tags.includes('pronuncia'));
   const sorteaveis = allEntries().filter(ehVocabulario).map((e) => e.hz);
   assert.ok(!sorteaveis.includes('白痴') && !sorteaveis.includes('蒿子秆') && sorteaveis.includes('图书馆'));
+});
+
+test('lições 6–7 passam a sabidas num aparelho que já as tinha como novas: só o que nunca foi respondido muda', () => {
+  // Estado como o do celular na versão anterior: curso incorporado, lições 6–7 novas.
+  const s = emptyState();
+  incorporarCurso(s, { agora: INICIO });
+  const licao = new Map(PALAVRAS.map((p) => [idCurso(p.hanzi), p.licao]));
+  s.deck.cartoes = s.deck.cartoes.filter((c) => licao.get(c.draftId) <= 5);
+  delete s.deck.licoesSabidasAte;
+  sincronizarCartoes(s, { agora: INICIO });
+  assert.ok(s.deck.cartoes.filter((c) => licao.get(c.draftId) > 5).every((c) => c.estado === 'novo'));
+  // Ele já estudou 想 (reconhecer) no baralho: esse cartão não pode ser tocado.
+  const estudado = s.deck.cartoes.find((c) => c.draftId === idCurso('想') && c.modelo === 'reconhecer');
+  Object.assign(estudado, { estado: 'revisao', reps: 2, s: 3.1, due: dias(INICIO, 4).toISOString(), ultimaRevisao: INICIO.toISOString() });
+  s.deck.registro.push({ id: 'r1', cartaoId: estudado.id, draftId: estudado.draftId, at: INICIO.toISOString(), nota: 3, estadoAntes: 'novo' });
+  const licoes15 = JSON.stringify(s.deck.cartoes.filter((c) => licao.get(c.draftId) <= 5));
+  const copiaEstudado = JSON.stringify(estudado);
+
+  const depois = dias(INICIO, 2);
+  assert.equal(precisaIncorporarCurso(s), true);
+  const rel = incorporarCurso(s, { agora: depois });
+  assert.equal(rel.jaSabidos, (NPAL - N15) * 2 - 1);
+  assert.equal(rel.novos, 0);
+  assert.equal(s.deck.licoesSabidasAte, 7);
+  assert.equal(JSON.stringify(s.deck.cartoes.find((c) => c.id === estudado.id)), copiaEstudado, 'cartão respondido intacto');
+  assert.equal(JSON.stringify(s.deck.cartoes.filter((c) => licao.get(c.draftId) <= 5)), licoes15, 'lições 1–5 intactas');
+  const convertidos = s.deck.cartoes.filter((c) => licao.get(c.draftId) > 5 && c.id !== estudado.id);
+  assert.ok(convertidos.every((c) => c.estado === 'revisao' && c.conhecidoDeclarado && c.reps === 0));
+  const diaDe = (c) => Math.round((Date.parse(c.due) - Date.parse(`${dayKey(depois)}T00:00:00`)) / 86400000);
+  assert.ok(convertidos.filter((c) => c.modelo === 'reconhecer').every((c) => diaDe(c) >= 1 && diaDe(c) <= DIAS_ESPALHAR));
+  assert.ok(convertidos.filter((c) => c.modelo === 'produzir').every((c) => diaDe(c) > DIAS_ESPALHAR && diaDe(c) <= DIAS_ESPALHAR * 2));
+  assert.equal(s.deck.registro.length, 1, 'declarar não cria respostas');
+  assert.equal(fila(s, { agora: depois }).contagem.novos, 0, 'fila de novos livre para o pacote');
+
+  // Idempotente, e a mesclagem com o aparelho antigo não faz converter de novo.
+  assert.equal(precisaIncorporarCurso(s), false);
+  const antes = JSON.stringify(s.deck);
+  incorporarCurso(s, { agora: dias(depois, 1) });
+  assert.equal(JSON.stringify(s.deck), antes);
+  const velho = emptyState();
+  velho.deck = { ...velho.deck, cursoIncluido: [...s.deck.cursoIncluido] };
+  assert.equal(mergeStates(velho, s).state.deck.licoesSabidasAte, 7);
+});
+
+test('reavaliação: cobra o vocabulário oficial do curso em estudo, nunca os extras nem cartões novos', async () => {
+  const { buildWeeklyAssessment, assessmentStatus } = await import('../src/core/assessment.js');
+  const s = emptyState();
+  assert.equal(assessmentStatus(s).due, false, 'sem nada estudado não dá para montar');
+  incorporarCurso(s, { agora: INICIO });
+  const oficiais = new Set(PALAVRAS.filter((p) => !p.extra).map((p) => p.hanzi));
+  const extras = new Set(PALAVRAS.filter((p) => p.extra).map((p) => p.hanzi));
+  assert.notEqual(assessmentStatus(s).reason, 'Ainda há poucos itens estudados para montar uma reavaliação com itens novos.');
+  const alvos = [];
+  for (let seed = 1; seed <= 20; seed += 1) {
+    const a = buildWeeklyAssessment(s, { seed });
+    alvos.push(...a.items.filter((i) => i.skill === 'vocabulary').flatMap((i) => i.targets || [i.ref]));
+  }
+  assert.ok(alvos.length > 0);
+  assert.ok(alvos.every((hz) => oficiais.has(hz) && !extras.has(hz)), `só oficiais: ${alvos.filter((hz) => !oficiais.has(hz))}`);
+  // Cartão ainda novo não conta como estudado.
+  for (const c of s.deck.cartoes) if (c.draftId === idCurso('香蕉')) Object.assign(c, { estado: 'novo', conhecidoDeclarado: false });
+  for (let seed = 1; seed <= 20; seed += 1) {
+    assert.ok(!buildWeeklyAssessment(s, { seed }).items.some((i) => (i.targets || []).includes('香蕉') || i.ref === '香蕉'));
+  }
 });

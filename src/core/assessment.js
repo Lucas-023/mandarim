@@ -7,7 +7,8 @@
  * sorteia outros de dificuldade equivalente entre o que você já estudou.
  *
  * Também não mede o que não foi ensinado: só entram itens que passaram pelo
- * agendador (ou seja, que o app realmente apresentou a você).
+ * agendador (ou seja, que o app realmente apresentou a você) e as palavras
+ * oficiais do curso que já estão em estudo no Baralho.
  */
 import { uid } from './storage.js';
 import { allItems } from './schedule.js';
@@ -18,6 +19,7 @@ import { grammarPoint } from './content/grammar.js';
 import { makeRng } from './exercises.js';
 import { dayKey, addDays } from './xp.js';
 import { estimateAllSkills } from './skills.js';
+import { palavrasDoCurso, idCurso } from './curso.js';
 
 export const ASSESSMENT_INTERVAL_DAYS = 7;
 export const MIN_ITEMS = 6;
@@ -59,9 +61,21 @@ export function assessmentStatus(state, { today = dayKey() } = {}) {
   };
 }
 
-/** Itens que o app já apresentou e que podem ser cobrados. */
+/**
+ * Itens que o app já apresentou e que podem ser cobrados: os do agendador (pacotes)
+ * e o vocabulário oficial do curso que já está em estudo no Baralho (cartão
+ * respondido ou declarado sabido; cartão ainda novo não conta). Os extras dos
+ * slides ficam de fora, como no resto dos exercícios.
+ */
 function estoqueDeItens(state) {
-  return allItems(state).filter((i) => (isGrammarRef(i.ref) ? grammarPoint(grammarIdFromRef(i.ref)) : lookup(i.ref)));
+  const doAgendador = allItems(state).filter((i) => (isGrammarRef(i.ref) ? grammarPoint(grammarIdFromRef(i.ref)) : lookup(i.ref)));
+  const refs = new Set(doAgendador.map((i) => i.ref));
+  const emEstudo = new Set((state.deck?.cartoes || []).filter((c) => c.estado !== 'novo' && !c.suspenso).map((c) => c.draftId));
+  const doCurso = palavrasDoCurso()
+    .filter((hz) => !refs.has(hz) && emEstudo.has(idCurso(hz)))
+    .filter((hz) => { const e = lookup(hz); return e && ehVocabulario(e); })
+    .map((hz) => ({ ref: hz, type: 'word' }));
+  return [...doAgendador, ...doCurso];
 }
 
 /** Refs já usadas nas últimas avaliações — a próxima evita repeti-las. */

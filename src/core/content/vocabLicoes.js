@@ -382,8 +382,13 @@ export const LICOES = [
   },
 ];
 
-/** Lições cujas palavras o aluno declarou saber (entram no baralho como já sabidas). */
-export const ULTIMA_LICAO_SABIDA = 5;
+/**
+ * Lições cujas palavras o aluno declarou saber (entram no baralho como já sabidas).
+ * Era 5; em 2026-11-14 ele disse que já estudou as lições 6–7 em aula. Subir este
+ * número converte, no próximo boot, os cartões ainda NOVOS dessas lições (ver
+ * curso.js, deck.licoesSabidasAte).
+ */
+export const ULTIMA_LICAO_SABIDA = 7;
 
 const todas = LICOES.flatMap((l) => l.palavras.map((p) => ({ ...p, licao: l.numero })));
 /**

@@ -19,8 +19,13 @@
  *
  * Palavra que entrar na lista depois vira cartão NOVO, como qualquer outro. E
  * mesmo na primeira vez (aparelho novo, dados apagados) só as lições até
- * ULTIMA_LICAO_SABIDA (5) entram como sabidas: as lições 6+ nascem novas. A lista do que já foi incorporado fica em `deck.cursoIncluido`:
+ * ULTIMA_LICAO_SABIDA entram como sabidas: as lições seguintes nascem novas. A lista do que já foi incorporado fica em `deck.cursoIncluido`:
  * excluir o cartão de uma palavra do curso não faz ela voltar sozinha.
+ *
+ * Quando ULTIMA_LICAO_SABIDA sobe (o aluno avisou que já viu mais lições em aula),
+ * os cartões dessas lições que ainda estão NOVOS (nunca respondidos) viram já
+ * sabidos, espalhados do mesmo jeito. Cartão já respondido não é tocado. Até onde
+ * isso já foi feito fica em `deck.licoesSabidasAte` (ausente = 5, o valor antigo).
  *
  * Nada aqui é proficiência nem dá XP.
  */
@@ -37,8 +42,12 @@ const MODELOS_CURSO = ['reconhecer', 'produzir'];
 
 const LICAO = new Map(LICOES.map((l) => [l.numero, l]));
 
+/** Até que lição os cartões novos já foram convertidos em sabidos neste aparelho. */
+const sabidasAte = (deck) => deck?.licoesSabidasAte ?? 5;
+
 export function precisaIncorporarCurso(state) {
   const feitos = new Set(state.deck?.cursoIncluido || []);
+  if (Array.isArray(state.deck?.cursoIncluido) && sabidasAte(state.deck) < ULTIMA_LICAO_SABIDA) return true;
   return PALAVRAS.some((p) => !feitos.has(p.hanzi)) || Boolean(state.vocabulario?.cartoes?.length || state.vocabulario?.registro?.length);
 }
 
@@ -171,23 +180,44 @@ export function incorporarCurso(state, { agora = new Date() } = {}) {
   }
   const licaoDe = new Map(entraram.map(({ p, d }) => [d.id, p.licao]));
   const sabida = (x) => primeiraVez && licaoDe.get(x.d.id) <= ULTIMA_LICAO_SABIDA;
-  if (primeiraVez) {
-    // Reconhecer nos dias 1–7, produzir nos dias 8–14: irmãos longe um do outro.
-    // Se não sobrou nenhum "reconhecer" por estudar, o "produzir" já começa amanhã.
-    let inicio = 1;
+  const declarar = primeiraVez ? semEstudo.filter(sabida) : [];
+
+  // 3b. Lições que passaram a ser sabidas depois da primeira vez: só o que ainda é novo.
+  const ate = sabidasAte(deck);
+  if (!primeiraVez && ate < ULTIMA_LICAO_SABIDA) {
+    const respondidos = new Set(deck.registro.map((r) => r.cartaoId));
+    const ja = new Set(declarar.map((x) => x.id));
     for (const m of modelos) {
-      const lista = semEstudo.filter((x) => x.m === m && sabida(x));
-      if (!lista.length) continue;
-      const porDia = Math.max(1, Math.ceil(lista.length / DIAS_ESPALHAR));
-      lista.forEach((x, i) => {
-        cartoes.set(x.id, cartaoJaSabido(x.d.id, m, inicio + Math.floor(i / porDia), agora));
-        rel.jaSabidos += 1;
-      });
-      inicio += DIAS_ESPALHAR;
+      for (const p of PALAVRAS) {
+        if (p.licao <= ate || p.licao > ULTIMA_LICAO_SABIDA) continue;
+        const d = draftDe(p.hanzi);
+        if (!d || !(d.tags || []).includes('curso')) continue;
+        const id = idCartao(d.id, m);
+        const c = cartoes.get(id);
+        if (ja.has(id) || (c && (c.estado !== 'novo' || c.reps > 0)) || respondidos.has(id)) continue;
+        declarar.push({ d, m, id });
+        ja.add(id);
+      }
     }
   }
-  rel.novos = semEstudo.filter((x) => !sabida(x)).length;
+
+  // Reconhecer nos dias 1–7, produzir nos dias 8–14: irmãos longe um do outro.
+  // Se não sobrou nenhum "reconhecer" por estudar, o "produzir" já começa amanhã.
+  let inicio = 1;
+  for (const m of modelos) {
+    const lista = declarar.filter((x) => x.m === m);
+    if (!lista.length) continue;
+    const porDia = Math.max(1, Math.ceil(lista.length / DIAS_ESPALHAR));
+    lista.forEach((x, i) => {
+      cartoes.set(x.id, cartaoJaSabido(x.d.id, m, inicio + Math.floor(i / porDia), agora));
+      rel.jaSabidos += 1;
+    });
+    inicio += DIAS_ESPALHAR;
+  }
+  const declarados = new Set(declarar.map((x) => x.id));
+  rel.novos = semEstudo.filter((x) => !declarados.has(x.id)).length;
   deck.cartoes = [...cartoes.values()];
+  deck.licoesSabidasAte = Math.max(ate, ULTIMA_LICAO_SABIDA);
 
   // 4. Registro de respostas da aba Vocabulário, com os ids do baralho.
   const ids = new Set(deck.registro.map((r) => r.id));

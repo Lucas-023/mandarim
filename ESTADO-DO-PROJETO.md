@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-14. Testes: **320 passando** (`npm test`).
+> Última atualização: 2026-11-14. Testes: **322 passando** (`npm test`).
 
 ---
 
@@ -22,7 +22,7 @@ para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 ```
 Tamanho atual:  núcleo 7.590 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.683
 Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 311 palavras das lições 1–7 do curso
-                no Baralho (84 das lições 1–5 como já sabidas; 227 das lições 6–7 como novas: 64 oficiais + 163 extras) ·
+                no Baralho (todas como já sabidas desde §3.27: 84 das lições 1–5, 227 das lições 6–7 = 64 oficiais + 163 extras) ·
                 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -31,7 +31,7 @@ Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 31
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 320 testes, ~4s, sem rede
+npm test                       # 322 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -134,7 +134,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 320 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 322 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -457,7 +457,7 @@ exercícios) **e Baralho** (FSRS). Decisões:
 - **Conferência de "TODAS":** todo caractere chinês dos slides aparece em alguma palavra do curso,
   exceto nomes e 4 sobras de enunciado; a segmentação do texto extraído achou só 大学 de fora, que
   entrou. Enunciados da prova e títulos de slide entraram como extras (对话, 句子, 变调, 补充...).
-- **Já sabido só até `ULTIMA_LICAO_SABIDA` (5)**, mesmo na primeira incorporação. Antes, aparelho
+- **Já sabido só até `ULTIMA_LICAO_SABIDA`** (era 5; virou 7 em §3.27), mesmo na primeira incorporação. Antes, aparelho
   novo ou dados apagados declaravam sabida qualquer palavra da lista: com as lições 6–7 isso seria
   inventar conhecimento.
 - **Revisão da prova** (期中考试复习): palavras das lições 1–5 que faltavam na lista (你好, 您好, 好,
@@ -476,6 +476,29 @@ mais ~22, e as palavras dos pacotes esperam atrás. Saídas: subir "Cartões nov
 suspender a tag `extra`/`pronuncia` no navegador, ou intercalar origens na fila (não feito).
 **Se mudar:** tirar o `extra` de uma palavra a manda ao gerador como "vista"; reordenar `LICOES`
 não muda a fila de quem já incorporou (o `createdAt` foi gravado na incorporação).
+(O custo acima deixou de valer no mesmo dia: ver §3.27.)
+
+### 3.27 Lições 6–7 também já sabidas; reavaliação cobra o curso
+
+Logo depois de §3.26 o usuário pediu "esse vocabulário todo já em todos os meus treinos", a
+avaliação "agora" e, todo dia, a sessão do pacote mais palavras novas, além de treinar tudo sem
+fim. Perguntado, disse que **já estudou as lições 6–7 em aula**. Então:
+- **`ULTIMA_LICAO_SABIDA` = 7.** Num aparelho novo, as 311 entram como já sabidas (mesmo espalhamento).
+- **Migração para quem já tinha as lições 6–7 como novas** (o celular, desde o commit 7ad8f91):
+  `deck.licoesSabidasAte` (ausente = 5). Quando é menor que `ULTIMA_LICAO_SABIDA`,
+  `precisaIncorporarCurso` dá verdadeiro e `incorporarCurso` converte em já sabidos os cartões
+  **ainda novos, com `reps` 0 e sem resposta no registro** das lições no intervalo (reconhecer nos dias
+  1–7, produzir nos dias 8–14, a partir do dia da conversão). Cartão já respondido não é tocado. A
+  mesclagem leva o maior `licoesSabidasAte`, para não converter de novo. Conferido numa cópia de
+  `data/state.json` (estado da versão 7ad8f91 → nova): 454 convertidos, 0 cartões não-novos
+  alterados, sobram 4 novos (de pacote); fila de novos livre para os pacotes.
+- **Reavaliação** (`assessment.js`, `estoqueDeItens`): além do agendador, entra o vocabulário
+  oficial do curso com cartão já em estudo (não novo, não suspenso). Antes ela só via palavras de
+  pacote. Extras ficam de fora. O nivelamento (`questions.js`) continua um banco fixo: mudar quebra a
+  comparação entre tentativas.
+- **Treinar tudo sem fim** já existia: treino livre com "Todo o baralho" pega todo cartão não
+  suspenso, inclusive os novos.
+**Custo:** ~32 revisões a mais por dia nas próximas duas semanas (454 cartões ÷ 14 dias).
 
 ---
 
@@ -505,6 +528,7 @@ não muda a fila de quem já incorporou (o `createdAt` foi gravado na incorpora�
 | 20 | **Um baralho só**: as 77 palavras do curso entram no Baralho como já sabidas (progresso da aba Vocabulário migrado), palavras e frases do pacote entram sozinhas como cartões novos, curso vai como `seenWords` no briefing, treino livre e "+10 novos" no Baralho, aba Vocabulário removida (`#/vocab` → `#/deck`), prompt pack-v5 com foco no cotidiano (321 → 318: saíram os testes da aba, entraram `curso.test.js`) | pedido: "centralizar tudo no mesmo", "palavras sabidas como informação para as tarefas", "futebol não precisa ser central" |
 | 21 | Prioridade dos objetivos passa a dosar o conteúdo: rodízio ponderado em `candidateWords`, `goals` ordenado no briefing, prompt pack-v6 (futebol fora do 1º lugar = toque leve; exemplos do prompt no cotidiano); cartão de prioridades no topo do onboarding; texto de boas-vindas corrigido (havia áudio e envio de resumo desde a rodada 5/11) (318 → 319) | "prioridade menor no futebol, foco no cotidiano com um leve toque" e "não vi a parte de ordenar" |
 | 22 | **Lições 6–7 dos slides** (`slides_novos/`) no curso: 234 palavras novas (7 da revisão para a prova nas lições 1–5, 64 oficiais das lições 6–7, 163 extras: frutas, legumes, lugares, sala de aula, 42 pares de pronúncia), também no léxico base; já sabido só até a lição 5; extras fora de `seenWords`, dos exercícios sorteados e no fim da fila (319 → 320) | pedido: "TODAS as palavras que aparecerem em chinês na pasta slides_novos" |
+| 23 | **Lições 6–7 também já sabidas** (`ULTIMA_LICAO_SABIDA` = 7, migração por `deck.licoesSabidasAte` só para cartões nunca respondidos) e reavaliação cobrando o vocabulário oficial do curso em estudo (320 → 322) | "quero que esse vocabulário todo já esteja em todos os meus treinos"; "já estudei em aula" |
 
 ---
 
@@ -524,8 +548,8 @@ Desde §3.25 elas estão no Baralho e vão como `seenWords`, mas não existem em
 as usa nas frases, mas nunca as traz de volta como `review.dueWords` (o Baralho cuida da revisão).
 Se quiser que o pacote também as reencontre, o caminho é `introduceItems` para as 77 na primeira
 incorporação, com `introducedAt` antigo, sem `reps` inventados. Lições novas entram como objetos em
-`content/vocabLicoes.js` (viram cartões novos sozinhas; ver §3.26). Confirmar com o usuário o 你
-repetido da lição 1. Fila de novos sem intercalar origens: ver o custo em §3.26.
+`content/vocabLicoes.js` (viram cartões novos sozinhas; se ele já as viu em aula, subir `ULTIMA_LICAO_SABIDA`: §3.27). Confirmar com o usuário o 你
+repetido da lição 1. Fila de novos sem intercalar origens (com o curso todo sabido, hoje só pacotes passam por ela).
 
 ### 5.1b Baralho: próximos passos naturais
 `src/core/baralho.js` cobre o essencial do Anki. O que falta, em ordem de valor: otimizar os pesos do

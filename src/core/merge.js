@@ -156,6 +156,10 @@ export function mergeStates(aBruto, bBruto) {
     ...(a.deck?.cursoIncluido || b.deck?.cursoIncluido
       ? { cursoIncluido: [...new Set([...(a.deck?.cursoIncluido || []), ...(b.deck?.cursoIncluido || [])])] }
       : {}),
+    // Até que lição o curso já foi declarado sabido: o maior, para não converter de novo.
+    ...(a.deck?.licoesSabidasAte != null || b.deck?.licoesSabidasAte != null
+      ? { licoesSabidasAte: Math.max(a.deck?.licoesSabidasAte ?? 0, b.deck?.licoesSabidasAte ?? 0) }
+      : {}),
   };
   relatorio.adicionados.baralho = cartoesNovos + registro.novos;
 
