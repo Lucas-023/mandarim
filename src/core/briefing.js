@@ -15,6 +15,9 @@ import { LEXICON, lookup } from './content/lexicon.js';
 import { QUESTIONS } from './content/questions.js';
 import { frasesTravadas } from './fala.js';
 import { palavrasDoCurso } from './curso.js';
+import { PALAVRAS as PALAVRAS_DO_CURSO } from './content/vocabLicoes.js';
+
+const NO_CURSO = new Set(PALAVRAS_DO_CURSO.map((p) => p.hanzi));
 import { dayKey } from './xp.js';
 import { dueItems, upcomingItems, leeches, scheduleStats, seenGrammarIds, isGrammarRef, grammarIdFromRef } from './schedule.js';
 import { nextGrammarPoints, grammarProgress, grammarPoint } from './content/grammar.js';
@@ -92,7 +95,8 @@ export function palavrasCandidatas(state, { excluir = [], maxLevel = 2, limite =
   // tema do fim sumia; com rodízio igual, o último (futebol, para ele) levava
   // um terço das sugestões, e ele pediu "só um toque" (2026-11-10).
   const grupos = new Map();
-  for (const e of LEXICON.filter((x) => !fora.has(x.hz) && x.level <= maxLevel + 1)) {
+  // Palavras do curso (inclusive os extras dos slides) ficam de fora: já são cartões do Baralho.
+  for (const e of LEXICON.filter((x) => !fora.has(x.hz) && x.level <= maxLevel + 1 && !NO_CURSO.has(x.hz))) {
     const r = rank(e);
     if (!grupos.has(r)) grupos.set(r, []);
     grupos.get(r).push(e);

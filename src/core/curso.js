@@ -17,13 +17,14 @@
  * Na mesma primeira vez, cartões de pacotes que estavam pendentes são aprovados
  * (eles entram como novos), porque a partir daqui o pacote vai direto ao baralho.
  *
- * Palavra que entrar na lista depois (lição 6 em diante) vira cartão NOVO, como
- * qualquer outro. A lista do que já foi incorporado fica em `deck.cursoIncluido`:
+ * Palavra que entrar na lista depois vira cartão NOVO, como qualquer outro. E
+ * mesmo na primeira vez (aparelho novo, dados apagados) só as lições até
+ * ULTIMA_LICAO_SABIDA (5) entram como sabidas: as lições 6+ nascem novas. A lista do que já foi incorporado fica em `deck.cursoIncluido`:
  * excluir o cartão de uma palavra do curso não faz ela voltar sozinha.
  *
  * Nada aqui é proficiência nem dá XP.
  */
-import { LICOES, PALAVRAS } from './content/vocabLicoes.js';
+import { LICOES, PALAVRAS, ULTIMA_LICAO_SABIDA } from './content/vocabLicoes.js';
 import { normalizeFront } from './flashcards.js';
 import { garantirBaralho, configBaralho, sincronizarCartoes, idCartao } from './baralho.js';
 import { memoriaInicial } from './fsrs.js';
@@ -54,7 +55,7 @@ function rascunhoDoCurso(p, agora, i) {
     usageNote: p.nota || '',
     context: `Lição ${p.licao}${licao ? ` — ${licao.titulo}` : ''}`,
     difficulty: 1,
-    tags: ['curso', `licao-${p.licao}`],
+    tags: ['curso', `licao-${p.licao}`, ...(p.extra ? ['extra'] : []), ...(p.pronuncia ? ['pronuncia'] : [])],
     kind: 'word',
     template: 'zh_pt',
     duplicate: false,
@@ -168,12 +169,14 @@ export function incorporarCurso(state, { agora = new Date() } = {}) {
       if (!cartoes.has(id) || cartoes.get(id).estado === 'novo') semEstudo.push({ d, m, id });
     }
   }
+  const licaoDe = new Map(entraram.map(({ p, d }) => [d.id, p.licao]));
+  const sabida = (x) => primeiraVez && licaoDe.get(x.d.id) <= ULTIMA_LICAO_SABIDA;
   if (primeiraVez) {
     // Reconhecer nos dias 1–7, produzir nos dias 8–14: irmãos longe um do outro.
     // Se não sobrou nenhum "reconhecer" por estudar, o "produzir" já começa amanhã.
     let inicio = 1;
     for (const m of modelos) {
-      const lista = semEstudo.filter((x) => x.m === m);
+      const lista = semEstudo.filter((x) => x.m === m && sabida(x));
       if (!lista.length) continue;
       const porDia = Math.max(1, Math.ceil(lista.length / DIAS_ESPALHAR));
       lista.forEach((x, i) => {
@@ -182,9 +185,8 @@ export function incorporarCurso(state, { agora = new Date() } = {}) {
       });
       inicio += DIAS_ESPALHAR;
     }
-  } else {
-    rel.novos = semEstudo.length;
   }
+  rel.novos = semEstudo.filter((x) => !sabida(x)).length;
   deck.cartoes = [...cartoes.values()];
 
   // 4. Registro de respostas da aba Vocabulário, com os ids do baralho.
@@ -207,5 +209,9 @@ export function incorporarCurso(state, { agora = new Date() } = {}) {
   return rel;
 }
 
-/** Palavras do curso: o aluno declarou que sabe. Vão para o briefing como vistas. */
-export const palavrasDoCurso = () => PALAVRAS.map((p) => p.hanzi);
+/**
+ * Palavras do curso que vão para o briefing como vistas: o vocabulário oficial
+ * das lições (dado em aula). Os extras dos slides (frutas, legumes, pares de
+ * pronúncia...) ficam de fora: estão no baralho, mas ele ainda não os viu de fato.
+ */
+export const palavrasDoCurso = () => PALAVRAS.filter((p) => !p.extra).map((p) => p.hanzi);

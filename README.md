@@ -84,6 +84,7 @@ todas as telas.
 | Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
 | Baralho interno estilo Anki (FSRS, 4 notas, passos, navegador, estatísticas), sem precisar do Anki | ✅ |
 | As 77 palavras das lições 1–5 do curso no Baralho, como já sabidas, e enviadas ao gerador como vocabulário conhecido | ✅ |
+| Lições 6–7 (todas as palavras em chinês dos slides) no Baralho como cartões novos e no léxico base | ✅ |
 | Palavras e frases do pacote do dia entram sozinhas no Baralho, como cartões novos (desligável) | ✅ |
 | Treino livre no Baralho (fora do agendamento) e "+10 novos hoje" | ✅ |
 | Prática de fala: repetir em voz alta, dizer a partir do português, conversa simulada; gravar e comparar com o modelo | ✅ (autoavaliação, sem nota) |
@@ -119,8 +120,10 @@ Para quem não quer (ou não pode, como no iPhone sem pagar o AnkiMobile) depend
   - **as 77 palavras das lições 1–5 do curso** (`src/core/content/vocabLicoes.js`, de `vocab.png`),
     que entram como **já sabidas**: começam em revisão, espalhadas pelas duas primeiras semanas
     (os "reconhecer" na primeira, os "produzir" na segunda), para você não esquecer. O que você já
-    tinha estudado na antiga aba Vocabulário vem com o progresso e o histórico. Palavra de lição
-    nova acrescentada ao arquivo entra como cartão novo;
+    tinha estudado na antiga aba Vocabulário vem com o progresso e o histórico. As **lições 6 e 7**
+    (todas as palavras em chinês dos slides da pasta `slides_novos/`) entram como cartões **novos**:
+    primeiro o vocabulário oficial, depois os extras (frutas, legumes, lugares, palavras da sala de
+    aula, pares de pronúncia; tags `extra` e `pronuncia`, para suspender no navegador se quiser);
   - **o pacote do dia**: palavras novas e frases prontas entram sozinhas, como cartões **novos**
     (desliga nas Opções; aí elas esperam aprovação em *Criar cartões*);
   - o que você aprova em *Criar cartões* ou põe no botão *Adicionar cartão*.
@@ -586,7 +589,7 @@ src/core/             lógica pura, sem DOM — é o que os testes exercitam
   packs.js            ingestão do pacote: léxico, exercícios, rascunhos de cartão
   serverStore.js      persistência em arquivo via /api, com queda para localStorage
   content/
-    lexicon.js        154 entradas (base HSK1/2, cotidiano, futebol)
+    lexicon.js        154 entradas à mão (base HSK1/2, cotidiano, futebol) + as do curso
     questions.js      26 itens do banco de nivelamento
 src/ui/               telas (dashboard, onboarding, placement, study, cards, pack, …)
   audio.js            síntese de voz em zh-CN, com diagnóstico do que falta

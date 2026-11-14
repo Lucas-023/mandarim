@@ -14,7 +14,9 @@
  * Importante: `level` é uma estimativa interna de dificuldade, não uma
  * classificação oficial do HSK.
  */
-export const LEXICON = [
+import { PALAVRAS as PALAVRAS_DO_CURSO } from './vocabLicoes.js';
+
+const BASE = [
   // --- Pronomes e estruturas básicas ---
   { hz: '我', py: 'wǒ', pt: 'eu', level: 1, tags: ['base'] },
   { hz: '你', py: 'nǐ', pt: 'você', level: 1, tags: ['base'] },
@@ -183,6 +185,33 @@ export const LEXICON = [
   { hz: '训练', py: 'xùnliàn', pt: 'treino, treinar', level: 2, tags: ['futebol'] },
   { hz: '球鞋', py: 'qiúxié', pt: 'chuteira, tênis de jogo', level: 3, tags: ['futebol'] },
 ];
+
+/**
+ * As palavras das lições do curso (content/vocabLicoes.js) também fazem parte
+ * do léxico base: segmentação, pinyin automático e exercícios as reconhecem.
+ * A entrada escrita à mão acima vence quando a palavra está nos dois lugares.
+ * Nível: vocabulário oficial das lições 1–5 = 1, das lições 6+ = 2, extras dos
+ * slides = 3. Tags `curso`, `extra` (não é 生词 da lição) e `pronuncia` (pares
+ * mínimos); os exercícios sorteados deixam `extra` de fora, ver `ehVocabulario`.
+ */
+const NA_BASE = new Set(BASE.map((e) => e.hz));
+const DO_CURSO = PALAVRAS_DO_CURSO.filter((p) => !NA_BASE.has(p.hanzi)).map((p) => ({
+  hz: p.hanzi,
+  py: p.pinyin,
+  pt: p.pt,
+  level: p.extra ? 3 : p.licao <= 5 ? 1 : 2,
+  tags: ['curso', `licao-${p.licao}`, ...(p.extra ? ['extra'] : []), ...(p.pronuncia ? ['pronuncia'] : [])],
+}));
+
+export const LEXICON = [...BASE, ...DO_CURSO];
+
+/**
+ * Entrada boa para exercício sorteado (escuta, ditado, distratores): não é ponto
+ * de gramática nem extra dos slides (蒿子秆, 人民大会堂, pares como 牺牲/白痴).
+ * Escuta e ditado contam como evidência de habilidade: sortear palavra que ele
+ * nunca estudou só mediria azar. Extras continuam no baralho e na segmentação.
+ */
+export const ehVocabulario = (e) => !e.tags.includes('gramatica') && !e.tags.includes('extra');
 
 /**
  * Registro em tempo de execução.

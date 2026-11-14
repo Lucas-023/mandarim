@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-10. Testes: **319 passando** (`npm test`).
+> Última atualização: 2026-11-14. Testes: **320 passando** (`npm test`).
 
 ---
 
@@ -20,8 +20,9 @@ local, o gerador de linha de comando e os testes (`node --test`). Nenhum `npm in
 para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
-Tamanho atual:  núcleo 7.276 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.530
-Conteúdo:       154 palavras no léxico base · 77 palavras das lições do curso (no Baralho, como já sabidas) ·
+Tamanho atual:  núcleo 7.590 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.683
+Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 311 palavras das lições 1–7 do curso
+                no Baralho (84 das lições 1–5 como já sabidas; 227 das lições 6–7 como novas: 64 oficiais + 163 extras) ·
                 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -30,7 +31,7 @@ Conteúdo:       154 palavras no léxico base · 77 palavras das lições do cur
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 319 testes, ~4s, sem rede
+npm test                       # 320 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -121,10 +122,10 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   achievements.js       conquistas comprováveis
   recommendations.js    recomendações explicáveis
   demoData.js           dados fictícios de demonstração
-  content/lexicon.js    154 entradas + registro em tempo de execução
+  content/lexicon.js    154 entradas à mão + as palavras do curso (vocabLicoes) + registro em tempo de execução
   content/questions.js  26 itens do nivelamento
   content/grammar.js    50 estruturas em ordem de progressão
-  content/vocabLicoes.js  77 palavras das lições 1–5 do curso (de vocab.png), com pinyin e tradução
+  content/vocabLicoes.js  311 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
                         activities, history, settings, audio, recorder, geracao, caixa, baralho, falar)
@@ -133,7 +134,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 319 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  21 arquivos, 320 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -438,6 +439,44 @@ prompt com um tema só puxa todos os pacotes para ele.
 entradas no registro para os "sabidos" inventa respostas e infla a retenção; tirar o curso do fim
 de `seenWords` faz o corte apagá-lo quando o histórico crescer.
 
+### 3.26 Lições 6–7 dos slides: tudo entra, mas com ordem e sem fingir que ele sabe
+
+O usuário trouxe os slides das aulas (`slides_novos/`, 6 .pptx: lição 6 em três partes, revisão
+para a prova, lição 7) e pediu "TODAS as palavras que aparecerem em chinês", no baralho "básico e
+no que evolui", sem saber a diferença. Leitura adotada: **léxico base** (segmentação, pinyin,
+exercícios) **e Baralho** (FSRS). Decisões:
+- **Fonte única é `content/vocabLicoes.js`**; o léxico base passou a incluir essas palavras
+  (`DO_CURSO` em `lexicon.js`), com a entrada escrita à mão vencendo quando existe nas duas.
+  Nível: lições 1–5 = 1, 6+ = 2, extras = 3.
+- **`extra: true`** marca o que apareceu nos slides mas não é 生词 da lição (frutas, legumes do
+  cartaz, lugares das notas de dinheiro, pagamento, palavras da sala de aula, pares de pronúncia).
+  Extra vira cartão, mas **não vai em `seenWords`** (ele não aprendeu aquilo em aula) e
+  `PALAVRAS` o põe **no fim** da fila de novos, e **fica fora dos exercícios sorteados**
+  (`ehVocabulario`: escuta e ditado contam como evidência; sortear 蒿子秆 mediria azar).
+  `pronuncia: true` marca os 42 pares mínimos (牺牲/师生, 白痴/白漆), para achar e suspender.
+- **Conferência de "TODAS":** todo caractere chinês dos slides aparece em alguma palavra do curso,
+  exceto nomes e 4 sobras de enunciado; a segmentação do texto extraído achou só 大学 de fora, que
+  entrou. Enunciados da prova e títulos de slide entraram como extras (对话, 句子, 变调, 补充...).
+- **Já sabido só até `ULTIMA_LICAO_SABIDA` (5)**, mesmo na primeira incorporação. Antes, aparelho
+  novo ou dados apagados declaravam sabida qualquer palavra da lista: com as lições 6–7 isso seria
+  inventar conhecimento.
+- **Revisão da prova** (期中考试复习): palavras das lições 1–5 que faltavam na lista (你好, 您好, 好,
+  早上好, 对, 没有, 的) foram para o fim dessas lições.
+- **De fora, de propósito:** nomes de personagens (马丁, 林娜, 朱云, 马克, 李, 朱老师, 王老师),
+  frases inteiras dos exercícios (as palavras delas entraram), sobras de enunciado (所给, 只能, 一次
+  como expressão), 中国人民银行 escrito nas notas (entraram 人民, 银行, 中国银行), o que só aparece
+  em pinyin (光盘, 本, 张, 花儿, 开花儿 dos exercícios de 一 e 儿化) e o rótulo da caixa na foto
+  (陶瓷易碎 小心轻放).
+- `palavrasCandidatas` (briefing) exclui toda palavra do curso: já é cartão; sugerir de novo faria
+  o pacote trazer um rascunho duplicado.
+**Custo conhecido:** a fila de novos é por `criadoEm` (FIFO). Num aparelho que já tinha as 77, são
+468 cartões novos (conferido numa cópia de `data/state.json`: 0 já sabidos, 0 cartões existentes
+alterados). A 15 por dia, os 7 da revisão + 64 oficiais (~142 cartões) levam ~10 dias e os extras
+mais ~22, e as palavras dos pacotes esperam atrás. Saídas: subir "Cartões novos por dia", "+10 novos hoje",
+suspender a tag `extra`/`pronuncia` no navegador, ou intercalar origens na fila (não feito).
+**Se mudar:** tirar o `extra` de uma palavra a manda ao gerador como "vista"; reordenar `LICOES`
+não muda a fila de quem já incorporou (o `createdAt` foi gravado na incorporação).
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -465,6 +504,7 @@ de `seenWords` faz o corte apagá-lo quando o histórico crescer.
 | 19 | Treino livre salvo no estado (sobrevive a recarregar, botão "Continuar treino"); opção de reconhecer e produzir no mesmo dia, oferecida no fim do dia (318 → 321) | pergunta: "se eu recarregar vai esquecer tudo? queria treinar com todos sem refazer o reconhecimento" |
 | 20 | **Um baralho só**: as 77 palavras do curso entram no Baralho como já sabidas (progresso da aba Vocabulário migrado), palavras e frases do pacote entram sozinhas como cartões novos, curso vai como `seenWords` no briefing, treino livre e "+10 novos" no Baralho, aba Vocabulário removida (`#/vocab` → `#/deck`), prompt pack-v5 com foco no cotidiano (321 → 318: saíram os testes da aba, entraram `curso.test.js`) | pedido: "centralizar tudo no mesmo", "palavras sabidas como informação para as tarefas", "futebol não precisa ser central" |
 | 21 | Prioridade dos objetivos passa a dosar o conteúdo: rodízio ponderado em `candidateWords`, `goals` ordenado no briefing, prompt pack-v6 (futebol fora do 1º lugar = toque leve; exemplos do prompt no cotidiano); cartão de prioridades no topo do onboarding; texto de boas-vindas corrigido (havia áudio e envio de resumo desde a rodada 5/11) (318 → 319) | "prioridade menor no futebol, foco no cotidiano com um leve toque" e "não vi a parte de ordenar" |
+| 22 | **Lições 6–7 dos slides** (`slides_novos/`) no curso: 234 palavras novas (7 da revisão para a prova nas lições 1–5, 64 oficiais das lições 6–7, 163 extras: frutas, legumes, lugares, sala de aula, 42 pares de pronúncia), também no léxico base; já sabido só até a lição 5; extras fora de `seenWords`, dos exercícios sorteados e no fim da fila (319 → 320) | pedido: "TODAS as palavras que aparecerem em chinês na pasta slides_novos" |
 
 ---
 
@@ -483,9 +523,9 @@ partir de dados que o add-on não dá.
 Desde §3.25 elas estão no Baralho e vão como `seenWords`, mas não existem em `schedule.js`: o pacote
 as usa nas frases, mas nunca as traz de volta como `review.dueWords` (o Baralho cuida da revisão).
 Se quiser que o pacote também as reencontre, o caminho é `introduceItems` para as 77 na primeira
-incorporação, com `introducedAt` antigo, sem `reps` inventados. Lições 6+ entram como objetos novos
-em `content/vocabLicoes.js` (viram cartões novos sozinhas). Confirmar com o usuário o 你 repetido da
-lição 1.
+incorporação, com `introducedAt` antigo, sem `reps` inventados. Lições novas entram como objetos em
+`content/vocabLicoes.js` (viram cartões novos sozinhas; ver §3.26). Confirmar com o usuário o 你
+repetido da lição 1. Fila de novos sem intercalar origens: ver o custo em §3.26.
 
 ### 5.1b Baralho: próximos passos naturais
 `src/core/baralho.js` cobre o essencial do Anki. O que falta, em ordem de valor: otimizar os pesos do
@@ -498,7 +538,7 @@ Cobre até perto de HSK 3. Para um intensivo longo, faltam estruturas de HSK 4+.
 `content/grammar.js` mantendo a ordem de dificuldade (a fila é a ordem do array).
 
 ### 5.3 Léxico base ainda é pequeno
-154 entradas escritas à mão + o que os pacotes acrescentam. Para mineração de texto real, o ideal
+154 entradas escritas à mão + as do curso (§3.26) + o que os pacotes acrescentam. Para mineração de texto real, o ideal
 seria importar CC-DICT/CC-CEDICT (~120 mil entradas) para IndexedDB e consultar de lá.
 **Por que não foi feito:** sem rede no ambiente de desenvolvimento para baixar o dicionário.
 `content/lexicon.js` já tem registro em tempo de execução (`registerEntries`), então o caminho está
@@ -615,9 +655,16 @@ Registradas para ninguém cair de novo.
     `baralho.test.js`.
 24. **Inserir linha numa tabela casando com o fim de outra linha** quebra a tabela se a linha casada
     não terminar ali (a §4 perdeu o fim da linha 14 assim). Case com a linha inteira, `\n` incluso.
-25. **Todo estado novo ganha 154 cartões do curso ao abrir o Baralho** (§3.25). Teste de interface
+25. **Todo estado novo ganha os cartões do curso ao abrir o Baralho** (§3.25; 592 desde §3.26, só
+    168 como sabidos). Teste de interface
     que espera baralho vazio, ou conta cartões, precisa marcar o curso como já incorporado:
     `s.deck.cursoIncluido = PALAVRAS.map((p) => p.hanzi)` (é o `semCurso()` de `tests/ui.test.js`).
+26. **Slides .pptx: o texto extraído não é tudo.** Exercícios, o texto 3 da lição 6, o cartaz de
+    legumes e os pares de pronúncia da lição 7 são **imagens**. O que funcionou: texto dos
+    `ppt/slides/slideN.xml` (tags `<a:t>`) + `soffice --headless --convert-to pdf` + `pdftoppm` em
+    folhas de miniaturas, lendo as imagens. Não há tesseract com chinês instalado. Os slides usam
+    `ɡ` (U+0261) no pinyin e têm erros de tom (`yìdiánr`, `jú zǐ`): pinyin foi reescrito à mão.
+    `9研第6课1(1).pptx` é a versão corrigida de `9研第6课1.pptx`.
 
 ---
 

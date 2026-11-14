@@ -6,7 +6,7 @@
  * mas nunca por simplesmente exibir um cartão.
  */
 import { uid } from './storage.js';
-import { allEntries } from './content/lexicon.js';
+import { allEntries, ehVocabulario } from './content/lexicon.js';
 import { QUESTIONS, QUESTIONS_BY_ID } from './content/questions.js';
 import { recordEvidence } from './skills.js';
 import { awardXp } from './xp.js';
@@ -36,7 +36,7 @@ function shuffle(arr, rng) {
 }
 
 function pickPool({ tags = [], difficulty = null }) {
-  let pool = allEntries().filter((e) => !e.tags.includes('gramatica'));
+  let pool = allEntries().filter((e) => ehVocabulario(e));
   if (tags.length) {
     const filtered = pool.filter((e) => e.tags.some((t) => tags.includes(t)));
     if (filtered.length >= 8) pool = filtered;
@@ -236,7 +236,7 @@ export function gradeExercise(state, exercise, answers, { supportUsed = {}, at =
  */
 export function buildListeningExercise(state, { count = 8, today = undefined, seed = Date.now() } = {}) {
   const rng = makeRng(seed);
-  const pool = allEntries().filter((e) => !e.tags.includes('gramatica') && e.py && e.pt);
+  const pool = allEntries().filter((e) => ehVocabulario(e) && e.py && e.pt);
   const devidos = dueItems(state, { today, limit: 40, type: 'word' })
     .map((i) => lookup(i.ref))
     .filter(Boolean);
@@ -283,7 +283,7 @@ export function buildListeningExercise(state, { count = 8, today = undefined, se
  */
 export function buildDictationExercise(state, { count = 6, today = undefined, seed = Date.now() } = {}) {
   const rng = makeRng(seed);
-  const pool = allEntries().filter((e) => e.py && e.pt && !e.tags.includes('gramatica'));
+  const pool = allEntries().filter((e) => e.py && e.pt && ehVocabulario(e));
   const devidos = dueItems(state, { today, limit: 30, type: 'word' })
     .map((i) => lookup(i.ref))
     .filter(Boolean);
@@ -356,7 +356,7 @@ export function buildReviewExercise(state, { count = 10, today = undefined, seed
     .map((i) => ({ item: i, entry: lookup(i.ref) }))
     .filter(({ entry }) => entry);
 
-  const pool = allEntries().filter((e) => !e.tags.includes('gramatica'));
+  const pool = allEntries().filter((e) => ehVocabulario(e));
   const items = [];
   for (const { item, entry } of due.slice(0, count)) {
     // Item atrasado ou com recaídas cobra recuperação ativa (português → chinês);

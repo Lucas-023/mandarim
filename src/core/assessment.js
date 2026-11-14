@@ -11,7 +11,7 @@
  */
 import { uid } from './storage.js';
 import { allItems } from './schedule.js';
-import { lookup, allEntries } from './content/lexicon.js';
+import { lookup, allEntries, ehVocabulario } from './content/lexicon.js';
 import { QUESTIONS } from './content/questions.js';
 import { grammarIdFromRef, isGrammarRef } from './schedule.js';
 import { grammarPoint } from './content/grammar.js';
@@ -76,7 +76,7 @@ export function refsJaUsadas(state, { ultimas = 2 } = {}) {
 export function buildWeeklyAssessment(state, { count = 10, withAudio = false, seed = Date.now(), today = dayKey() } = {}) {
   const rng = makeRng(seed);
   const usadas = refsJaUsadas(state);
-  const pool = allEntries().filter((e) => e.py && e.pt && !e.tags.includes('gramatica'));
+  const pool = allEntries().filter((e) => e.py && e.pt && ehVocabulario(e));
 
   const palavras = estoqueDeItens(state)
     .filter((i) => !isGrammarRef(i.ref) && !usadas.has(i.ref))

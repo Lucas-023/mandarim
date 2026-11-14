@@ -171,8 +171,10 @@ test('o validador aceita roleplay bem formado e recusa o malformado', () => {
 
 test('briefing de aluno novo não dá o dicionário como sabido e sugere vocabulário de futebol', () => {
   const b = buildBriefing(emptyState(), { date: HOJE });
-  // Só as palavras do curso, que ele declarou saber; o léxico base não.
-  assert.deepEqual(b.seenWords, PALAVRAS.map((p) => p.hanzi));
+  // Só o vocabulário oficial das lições do curso; o léxico base e os extras dos slides não.
+  assert.deepEqual(b.seenWords, PALAVRAS.filter((p) => !p.extra).map((p) => p.hanzi));
+  assert.ok(!b.seenWords.includes('猕猴桃') && !b.seenWords.includes('牺牲'), 'extra dos slides não conta como visto');
+  assert.ok(b.candidateWords.every((c) => !PALAVRAS.some((p) => p.hanzi === c.hz)), 'palavra do curso já é cartão: não é sugerida');
   assert.ok(b.candidateWords.every((c) => !b.seenWords.includes(c.hz)), 'palavra do curso não é sugerida como nova');
   assert.ok(!('knownWords' in b));
   const sugeridas = b.candidateWords.map((c) => c.hz);

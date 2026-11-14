@@ -4,7 +4,7 @@ import { installDom, byButton, byButtonLike, byTag } from './helpers/dom-shim.js
 
 installDom();
 
-const { LICOES, PALAVRAS } = await import('../src/core/content/vocabLicoes.js');
+const { LICOES, PALAVRAS, ULTIMA_LICAO_SABIDA } = await import('../src/core/content/vocabLicoes.js');
 const { incorporarCurso, precisaIncorporarCurso, idCurso, DIAS_ESPALHAR } = await import('../src/core/curso.js');
 const {
   fila, responder, liberarNovosHoje, salvarConfig, estatisticas, sincronizarCartoes,
@@ -24,6 +24,8 @@ const INICIO = new Date(2026, 10, 9, 9, 0, 0);
 const minutos = (d, n) => new Date(d.getTime() + n * 60000);
 const dias = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const NPAL = PALAVRAS.length;
+/** Palavras das lições que ele declarou saber (1–5): só essas nascem "já sabidas". */
+const NSAB = PALAVRAS.filter((p) => p.licao <= ULTIMA_LICAO_SABIDA).length;
 
 /** Cartão da antiga aba Vocabulário, já estudado. */
 function cartaoVocab(hanzi, modelo, extra = {}) {
@@ -34,9 +36,15 @@ function cartaoVocab(hanzi, modelo, extra = {}) {
   };
 }
 
-test('lista do curso: 5 lições, palavras únicas, todas com pinyin e tradução', () => {
-  assert.equal(LICOES.length, 5);
-  assert.equal(NPAL, 77);
+test('lista do curso: 7 lições, palavras únicas, todas com pinyin e tradução', () => {
+  assert.deepEqual(LICOES.map((l) => l.numero), [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(NSAB, 84, '77 da lista original + 7 da revisão para a prova');
+  assert.ok(NPAL > 250, `lições 6 e 7 dos slides: ${NPAL}`);
+  // Vocabulário oficial primeiro, extras dos slides no fim da fila de novos.
+  const primeiroExtra = PALAVRAS.findIndex((p) => p.extra);
+  assert.ok(PALAVRAS.slice(primeiroExtra).every((p) => p.extra));
+  assert.ok(PALAVRAS.filter((p) => p.pronuncia).every((p) => p.extra && p.licao === 7));
+  for (const p of PALAVRAS) assert.doesNotMatch(p.pinyin, /ɡ/, `${p.hanzi}: pinyin com g comum, não o ɡ dos slides`);
   assert.equal(new Set(PALAVRAS.map((p) => p.hanzi)).size, NPAL, 'sem palavra repetida');
   for (const p of PALAVRAS) {
     assert.ok(p.pinyin && p.pt, `${p.hanzi} tem pinyin e tradução`);
@@ -44,30 +52,38 @@ test('lista do curso: 5 lições, palavras únicas, todas com pinyin e traduçã
   }
 });
 
-test('aparelho novo: as 77 palavras entram no baralho como já sabidas, espalhadas, sem inventar respostas', () => {
+test('aparelho novo: as lições 1–5 entram como já sabidas, espalhadas, sem inventar respostas; 6+ como novas', () => {
   const s = emptyState();
   assert.equal(precisaIncorporarCurso(s), true);
   const rel = incorporarCurso(s, { agora: INICIO });
   assert.equal(rel.rascunhos, NPAL);
-  assert.equal(rel.jaSabidos, NPAL * 2);
+  assert.equal(rel.jaSabidos, NSAB * 2);
+  assert.equal(rel.novos, (NPAL - NSAB) * 2);
   assert.equal(s.cardDrafts.length, NPAL);
   assert.ok(s.cardDrafts.every((d) => d.status === 'approved' && d.id === idCurso(d.front) && d.tags.includes('curso')));
   assert.equal(s.deck.cartoes.length, NPAL * 2);
-  assert.ok(s.deck.cartoes.every((c) => c.estado === 'revisao' && c.conhecidoDeclarado && c.reps === 0));
+  const licao = new Map(PALAVRAS.map((p) => [idCurso(p.hanzi), p.licao]));
+  const sabidos = s.deck.cartoes.filter((c) => licao.get(c.draftId) <= ULTIMA_LICAO_SABIDA);
+  const novos = s.deck.cartoes.filter((c) => licao.get(c.draftId) > ULTIMA_LICAO_SABIDA);
+  assert.ok(sabidos.every((c) => c.estado === 'revisao' && c.conhecidoDeclarado && c.reps === 0));
+  assert.ok(novos.every((c) => c.estado === 'novo' && !c.conhecidoDeclarado), 'lição 6+ não é declarada sabida');
   assert.equal(s.deck.registro.length, 0, 'declarar que sabe não é responder');
   assert.equal(precisaIncorporarCurso(s), false);
 
   // Nada vence hoje; reconhecer na primeira semana, produzir na segunda.
   const hoje = dayKey(INICIO);
   const diaDe = (c) => Math.round((Date.parse(c.due) - Date.parse(`${hoje}T00:00:00`)) / 86400000);
-  const rec = s.deck.cartoes.filter((c) => c.modelo === 'reconhecer').map(diaDe);
-  const prod = s.deck.cartoes.filter((c) => c.modelo === 'produzir').map(diaDe);
+  const rec = sabidos.filter((c) => c.modelo === 'reconhecer').map(diaDe);
+  const prod = sabidos.filter((c) => c.modelo === 'produzir').map(diaDe);
   assert.ok(rec.every((d) => d >= 1 && d <= DIAS_ESPALHAR));
   assert.ok(prod.every((d) => d > DIAS_ESPALHAR && d <= DIAS_ESPALHAR * 2));
-  assert.equal(fila(s, { agora: INICIO }).proximo, null, 'hoje nada do curso cobra estudo');
+  const hojeFila = fila(s, { agora: INICIO });
+  assert.equal(hojeFila.contagem.revisao, 0, 'hoje nada do que ele sabe cobra revisão');
+  assert.equal(hojeFila.rascunho.front, '想', 'o primeiro novo é o primeiro 生词 da lição 6');
   const amanha = fila(s, { agora: dias(INICIO, 1) });
-  assert.ok(amanha.contagem.revisao > 0 && amanha.contagem.revisao <= Math.ceil(NPAL / DIAS_ESPALHAR));
-  assert.equal(amanha.rascunho.front, '你', 'ordem das lições');
+  assert.ok(amanha.contagem.revisao > 0 && amanha.contagem.revisao <= Math.ceil(NSAB / DIAS_ESPALHAR));
+  const primeiraRevisao = sabidos.slice().sort((x, y) => x.due.localeCompare(y.due) || x.criadoEm.localeCompare(y.criadoEm))[0];
+  assert.equal(primeiraRevisao.draftId, idCurso('你'), 'ordem das lições');
 
   // Não é proficiência.
   assert.ok(estimateAllSkills(s).every((x) => x.status === 'nao_avaliada'));
@@ -302,7 +318,8 @@ test('tela: abrir o baralho num aparelho novo traz o curso e avisa o que fez', (
   const ctx = makeCtx();
   const view = renderBaralho(ctx);
   assert.equal(ctx.state.deck.cartoes.length, NPAL * 2);
-  assert.match(ctx.toasts.at(-1).m, /154 cartões das lições do curso entraram como já sabidos/);
+  assert.match(ctx.toasts.at(-1).m, new RegExp(`${NSAB * 2} cartões das lições do curso entraram como já sabidos`));
+  assert.match(ctx.toasts.at(-1).m, new RegExp(`${(NPAL - NSAB) * 2} cartões novos do curso`));
   assert.match(view.textContent, /Treino livre/);
   assert.match(view.textContent, /Palavras do curso/);
   renderBaralho(ctx);
@@ -322,7 +339,7 @@ test('tela: treino livre do começo ao fim, sem mexer no agendamento', () => {
   assert.deepEqual(ctx.navigations.at(-1), { view: 'deck', params: { modo: 'treino' } });
   ctx.params = { modo: 'treino' };
   let view = renderBaralho(ctx);
-  assert.match(view.textContent, /Treino livre · 0\/77/);
+  assert.match(view.textContent, new RegExp(`Treino livre · 0/${NPAL}`));
   view.find(byButton('Mostrar resposta')).click();
   view = renderBaralho(ctx);
   view.find(byButtonLike('Errei')).click();
@@ -364,4 +381,16 @@ test('tela: o cartão do curso mostra a nota de uso no verso', () => {
   salvarTreino(s, { fila: [{ draftId: idCurso(comNota.hanzi), modelo: 'reconhecer' }], total: 1, respondidas: 0, acertosDePrimeira: 0, erradas: [], jaErrou: [] });
   renderBaralho(ctx).find(byButton('Mostrar resposta')).click();
   assert.ok(renderBaralho(ctx).textContent.includes(comNota.nota));
+});
+
+test('léxico base inclui as palavras do curso; a entrada escrita à mão vence; par de pronúncia fica fora dos sorteios', async () => {
+  const { lookup, allEntries, ehVocabulario } = await import('../src/core/content/lexicon.js');
+  for (const p of PALAVRAS) assert.ok(lookup(p.hanzi), `${p.hanzi} no léxico`);
+  assert.equal(lookup('谢谢').tags.includes('curso'), false, 'base escrita à mão não é sobrescrita');
+  assert.deepEqual(lookup('香蕉').tags, ['curso', 'licao-6']);
+  assert.equal(lookup('香蕉').level, 2);
+  assert.equal(lookup('猕猴桃').level, 3, 'extra dos slides é nível 3');
+  assert.ok(lookup('牺牲').tags.includes('pronuncia'));
+  const sorteaveis = allEntries().filter(ehVocabulario).map((e) => e.hz);
+  assert.ok(!sorteaveis.includes('白痴') && !sorteaveis.includes('蒿子秆') && sorteaveis.includes('图书馆'));
 });
