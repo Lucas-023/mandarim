@@ -230,9 +230,9 @@ test('registro não sobrescreve a base escrita à mão nem aceita entradas incom
 test('entrada mais longa amplia a janela da segmentação', (t) => {
   t.after(resetRegistry);
   const before = maxEntryLen();
-  registerEntries([{ hz: '一个星期踢两次', py: 'yí gè xīngqī tī liǎng cì', pt: 'duas vezes por semana', level: 2, tags: ['tempo'] }], { source: 'teste' });
+  registerEntries([{ hz: '一个星期踢两次足球', py: 'yí gè xīngqī tī liǎng cì zúqiú', pt: 'jogar futebol duas vezes por semana', level: 2, tags: ['tempo'] }], { source: 'teste' });
   assert.ok(maxEntryLen() > before);
-  assert.deepEqual(segment('我一个星期踢两次').map((x) => x.hz), ['我', '一个星期踢两次']);
+  assert.deepEqual(segment('我一个星期踢两次足球').map((x) => x.hz), ['我', '一个星期踢两次足球']);
 });
 
 // ───────────────────────────── ingestão ─────────────────────────────

@@ -21,7 +21,7 @@ para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
 Tamanho atual:  núcleo 7.590 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.683
-Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 311 palavras das lições 1–7 do curso
+Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 323 palavras das lições 1–7 do curso
                 no Baralho (todas como já sabidas desde §3.27: 84 das lições 1–5, 227 das lições 6–7 = 64 oficiais + 163 extras) ·
                 26 questões de nivelamento · 50 pontos de gramática
 ```
@@ -125,7 +125,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/lexicon.js    154 entradas à mão + as palavras do curso (vocabLicoes) + registro em tempo de execução
   content/questions.js  26 itens do nivelamento
   content/grammar.js    50 estruturas em ordem de progressão
-  content/vocabLicoes.js  311 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
+  content/vocabLicoes.js  323 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
                         activities, history, settings, audio, recorder, geracao, caixa, baralho, falar)
@@ -499,6 +499,13 @@ fim. Perguntado, disse que **já estudou as lições 6–7 em aula**. Então:
 - **Treinar tudo sem fim** já existia: treino livre com "Todo o baralho" pega todo cartão não
   suspenso, inclusive os novos.
 **Custo:** ~32 revisões a mais por dia nas próximas duas semanas (454 cartões ÷ 14 dias).
+
+**Lição 7, parte 2** (`15研第7课2.pptx`, 2026-11-18): 生词 去 知道 跟 吧 太 了 (哪儿 银行 东边 já
+estavam) no fim das oficiais da lição 7; extras 太好了 咖啡店 书店 邮局 (fotos do Practice) 中国人
+北京航空航天大学. Como chegaram depois da incorporação, viram **cartões novos** (24), não sabidos:
+`ULTIMA_LICAO_SABIDA` só converte no salto de `licoesSabidasAte`. De fora: nomes (马丁, 山田, 朱老师),
+frases do texto e dos exercícios. 北京航空航天大学 (8 caracteres) virou a maior entrada do léxico: o
+teste "entrada mais longa amplia a janela" passou a usar uma de 9.
 
 ---
 
