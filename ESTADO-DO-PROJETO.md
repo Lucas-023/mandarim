@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-18. Testes: **328 passando** (`npm test`).
+> Última atualização: 2026-11-18. Testes: **334 passando** (`npm test`).
 
 ---
 
@@ -31,7 +31,7 @@ Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 32
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 328 testes, ~4s, sem rede
+npm test                       # 334 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -99,6 +99,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   curso.js              palavras das lições do curso → baralho (já sabidas) e migração da antiga aba Vocabulário
   treino.js             treino livre do baralho: repetição fora do agendamento (não mexe no FSRS)
   hanzi.js              aba Hanzi: escolher entre parecidos e montar pelas peças (sem proficiência)
+  lexchi.js             teste "Existe?" no formato LexCHI, com as palavras do aluno (sem proficiência)
   fala.js               prática de fala: fila de frases, autoavaliação, conversa simulada (sem proficiência)
   caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
@@ -126,17 +127,18 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/lexicon.js    154 entradas à mão + as palavras do curso (vocabLicoes) + registro em tempo de execução
   content/questions.js  26 itens do nivelamento
   content/grammar.js    50 estruturas em ordem de progressão
+  content/palavrasReais.js  GERADO (scripts/gerar-palavras-reais.mjs): 33 mil palavras de 2 caracteres do CC-CEDICT, CC BY-SA 4.0; carregado sob demanda
   content/componentes.js  GERADO (scripts/gerar-componentes.mjs): IDS + radical de 4074 caracteres, LGPL-3
   content/vocabLicoes.js  323 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar, hanzi)
+                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar, hanzi, lexchi)
 tools/generate.js       gerador por linha de comando
 tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
-scripts/                timer systemd, semear demonstração, montar publicação, gerar componentes
+scripts/                timer systemd, semear demonstração, montar publicação, gerar componentes e palavras reais
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  22 arquivos, 328 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  23 arquivos, 334 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -535,6 +537,33 @@ escolheu os dois exercícios:
 **Se mudar:** regenerar `componentes.js` depois de mexer no léxico só importa para caracteres raros
 (os comuns já estão no recorte).
 
+### 3.29 Teste "Existe?" no formato LexCHI, com as palavras dele
+
+O "LEXCHI" do pedido de §3.28 era o **LexCHI** (Wen, Qiu, Leong & van Heuven, *Behavior Research
+Methods* 2024; itens em https://osf.io/dh3ty/): 60 itens de dois caracteres, 40 palavras e 20
+"não-palavras" (dois caracteres reais que não formam palavra), sem tempo, nota de Ghent normalizada
+(sim às reais − 2 × sim às falsas) ÷ nº de reais. Há também o LEXTALE_CH (Chan & Chang 2018, caracteres
+soltos, pseudocaracteres desenhados). Os itens originais são avançados (烹饪, 慷慨); ele pediu
+**"em maioria caracteres que eu conheço"**. Então `core/lexchi.js` monta o teste a cada vez:
+- **Reais**: palavras de 2 caracteres do Baralho, por grau (respondida > oficial em estudo > extra
+  > nova); pares de `pronuncia` fora.
+- **Falsas**, metade de cada: **troca por parecido** (um caractere por um conhecido de mesmo radical
+  ou peça igual: 起市 de 超市, 什宜 de 便宜) e **mistura** (começo de uma conhecida + fim de outra).
+  Uma palavra que vira falsa não aparece como real.
+- **Uma falsa precisa não existir de verdade**: fora do CC-CEDICT, nas duas ordens, e **nenhum dos dois
+  caracteres pode ser palavra sozinho** no léxico, nem palavra-função ou sufixo (很 太 不 了 儿 子…).
+  Sem essa regra saíam frases válidas que dicionário nenhum lista (打妈 "bater na mãe", 写上, 饭儿).
+- Caractere no máximo 2 vezes no teste; nunca mais de 4 do mesmo tipo seguidos (o original, ≤5).
+- Modos **teste** (sem correção até o fim; nota vai para o histórico) e **treino** (resposta a cada
+  item). Fim: inventadas aceitas com a origem ("很 no lugar de 银") e reais não reconhecidas.
+- `state.lexchiTestes` (união na mesclagem). **Não é evidência de proficiência**: os itens saem do
+  que ele estuda, então medem o reconhecimento desse vocabulário, não o nível geral.
+- **Dicionário**: `content/palavrasReais.js`, palavras de 2 caracteres do CC-CEDICT com os dois
+  caracteres entre os 2500 mais comuns ou no léxico (`VERIFICAVEIS`; falsas só usam esses). 118 KB,
+  importado sob demanda na primeira abertura do modo.
+**Limite conhecido:** "não estar no dicionário" não prova que não é expressão; a regra dos caracteres
+soltos corta a maior parte. Se ele apontar uma "inventada" que existe, acrescentar à lista e regenerar.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -565,6 +594,7 @@ escolheu os dois exercícios:
 | 22 | **Lições 6–7 dos slides** (`slides_novos/`) no curso: 234 palavras novas (7 da revisão para a prova nas lições 1–5, 64 oficiais das lições 6–7, 163 extras: frutas, legumes, lugares, sala de aula, 42 pares de pronúncia), também no léxico base; já sabido só até a lição 5; extras fora de `seenWords`, dos exercícios sorteados e no fim da fila (319 → 320) | pedido: "TODAS as palavras que aparecerem em chinês na pasta slides_novos" |
 | 23 | **Lições 6–7 também já sabidas** (`ULTIMA_LICAO_SABIDA` = 7, migração por `deck.licoesSabidasAte` só para cartões nunca respondidos) e reavaliação cobrando o vocabulário oficial do curso em estudo (320 → 322) | "quero que esse vocabulário todo já esteja em todos os meus treinos"; "já estudei em aula" |
 | 24 | Lição 7, parte 2 (去 知道 跟 吧 太 了 + 6 extras) e **aba Hanzi** (escolher entre parecidos, montar pelas peças; decomposição de Make Me a Hanzi) (322 → 328) | "algo como o LEXCHI... vejo um radical que tem em poucos ou só um que eu conheço e pronto já sei qual é" |
+| 25 | Teste **"Existe?"** no formato LexCHI na aba Hanzi: palavras reais do Baralho e inventadas por troca de parecido ou mistura, checadas contra o CC-CEDICT; nota de Ghent e histórico (328 → 334) | "eu gostaria que usasse em maioria caracteres que eu conheço... o teste existe" |
 
 ---
 

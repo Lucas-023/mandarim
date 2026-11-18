@@ -75,6 +75,7 @@ export function mergeStates(aBruto, bBruto) {
     ['cardDrafts', (x) => x.id],
     ['falaRegistro', (x) => x.id],
     ['hanziRegistro', (x) => x.id],
+    ['lexchiTestes', (x) => x.id],
   ];
   for (const [campo, chave] of listas) {
     const { lista, novos } = unirPor(a[campo], b[campo], chave);

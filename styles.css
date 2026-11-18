@@ -330,3 +330,8 @@ body.foco .view { max-width: 640px; }
 .hanzi-ok { border-left-color: var(--ok); }
 .hanzi-erro { border-left-color: var(--accent); }
 .hanzi-mini { font-size: 1.4rem; }
+
+/* Teste "Existe?" (formato LexCHI) */
+.lexchi-item { text-align: center; font-size: 3.2rem; letter-spacing: .2em; margin: 1.25rem 0; }
+.lexchi-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.lexchi-botoes .btn { min-height: 3.5rem; font-size: 1.05rem; }

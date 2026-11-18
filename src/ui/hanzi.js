@@ -8,8 +8,9 @@ import { speakButton, canSpeak } from './audio.js';
 import {
   montarRodada, corrigir, registrarHanzi, sobre, resumoHanzi, pecas, ESTRUTURAS,
 } from '../core/hanzi.js';
+import { renderExiste } from './lexchi.js';
 
-const MODOS = { misturado: 'Os dois', parecidos: 'Escolher entre parecidos', montar: 'Montar pelas peças' };
+const MODOS = { misturado: 'Os dois', parecidos: 'Escolher entre parecidos', montar: 'Montar pelas peças', existe: 'Existe? (teste)' };
 
 function tela(ctx) {
   if (!ctx.ui.hanzi) ctx.ui.hanzi = { modo: 'misturado', itens: null, i: 0, escolha: [], resposta: null, acertos: 0 };
@@ -22,9 +23,13 @@ function novaRodada(ctx, t) {
 
 export function renderHanzi(ctx) {
   const t = tela(ctx);
-  if (!t.itens) novaRodada(ctx, t);
   const wrap = h('div', { class: 'stack' });
   wrap.append(renderTopo(ctx, t));
+  if (t.modo === 'existe') {
+    wrap.append(renderExiste(ctx));
+    return wrap;
+  }
+  if (!t.itens) novaRodada(ctx, t);
   if (!t.itens.length) {
     wrap.append(card(null, emptyNote(
       'Ainda não há caracteres para treinar: eles vêm das palavras do seu Baralho. Abra o Baralho uma vez para trazer as palavras do curso.')));
@@ -38,7 +43,7 @@ function renderTopo(ctx, t) {
   const r = resumoHanzi(ctx.state);
   const trocar = (modo) => {
     t.modo = modo;
-    novaRodada(ctx, t);
+    t.itens = null;
     ctx.render();
   };
   return card('Hanzi',
