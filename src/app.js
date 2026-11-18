@@ -24,6 +24,7 @@ import { renderSettings } from './ui/settings.js';
 import { renderPack } from './ui/pack.js';
 import { renderBaralho, avisarIncorporacao } from './ui/baralho.js';
 import { renderFalar } from './ui/falar.js';
+import { renderHanzi } from './ui/hanzi.js';
 import { soltarMicrofone } from './ui/recorder.js';
 import { sincronizarCartoes, precisaSincronizar } from './core/baralho.js';
 import { incorporarCurso, precisaIncorporarCurso } from './core/curso.js';
@@ -34,6 +35,7 @@ const VIEWS = {
   study: { label: 'Estudar', render: renderStudy },
   deck: { label: 'Baralho', render: renderBaralho },
   speak: { label: 'Falar', render: renderFalar },
+  hanzi: { label: 'Hanzi', render: renderHanzi },
   cards: { label: 'Criar cartões', render: renderCards },
   activities: { label: 'Registrar', render: renderActivities },
   history: { label: 'Histórico', render: renderHistory },

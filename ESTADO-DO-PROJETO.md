@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-14. Testes: **322 passando** (`npm test`).
+> Última atualização: 2026-11-18. Testes: **328 passando** (`npm test`).
 
 ---
 
@@ -31,7 +31,7 @@ Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 32
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 322 testes, ~4s, sem rede
+npm test                       # 328 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -98,6 +98,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   baralho.js            o "Anki" interno: cartões por rascunho aprovado, fila do dia, responder, desfazer, +novos hoje
   curso.js              palavras das lições do curso → baralho (já sabidas) e migração da antiga aba Vocabulário
   treino.js             treino livre do baralho: repetição fora do agendamento (não mexe no FSRS)
+  hanzi.js              aba Hanzi: escolher entre parecidos e montar pelas peças (sem proficiência)
   fala.js               prática de fala: fila de frases, autoavaliação, conversa simulada (sem proficiência)
   caixaPostal.js        celular ↔ computador por repositório privado do GitHub (pedidos, pacotes, erros)
   session.js            sessão de exercício persistida (sobrevive a fechar o app)
@@ -125,16 +126,17 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/lexicon.js    154 entradas à mão + as palavras do curso (vocabLicoes) + registro em tempo de execução
   content/questions.js  26 itens do nivelamento
   content/grammar.js    50 estruturas em ordem de progressão
+  content/componentes.js  GERADO (scripts/gerar-componentes.mjs): IDS + radical de 4074 caracteres, LGPL-3
   content/vocabLicoes.js  323 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
-                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar)
+                        activities, history, settings, audio, recorder, geracao, caixa, baralho, falar, hanzi)
 tools/generate.js       gerador por linha de comando
 tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p → pacote no repositório
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
-scripts/                timer systemd, semear demonstração, montar publicação
+scripts/                timer systemd, semear demonstração, montar publicação, gerar componentes
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  21 arquivos, 322 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  22 arquivos, 328 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -507,6 +509,32 @@ estavam) no fim das oficiais da lição 7; extras 太好了 咖啡店 书店 邮
 frases do texto e dos exercícios. 北京航空航天大学 (8 caracteres) virou a maior entrada do léxico: o
 teste "entrada mais longa amplia a janela" passou a usar uma de 9.
 
+### 3.28 Aba Hanzi: reconhecer o caractere inteiro, não o radical
+
+Pedido (2026-11-18): "algo como o LEXCHI" (não achei esse app; o pedido foi descrito assim:
+conhecendo poucos hanzi, ele acerta pelo radical que só um dos conhecidos tem). Perguntado,
+escolheu os dois exercícios:
+- **Escolher entre parecidos**: pista = palavra com o caractere em branco (＿行), pinyin e
+  significado; 4 opções que dividem peças com o certo. `parecidos()` pontua radical, peça de
+  primeiro nível, componente em qualquer nível e estrutura, e **reveza entre as peças** (银 → 钟 很
+  钱): só com o radical em comum, a outra peça entregaria a resposta. Nunca usa um componente do
+  próprio caractere (艮 para 银).
+- **Montar pelas peças**: escolher as peças de primeiro nível (钅 + 艮) entre as certas e as dos
+  parecidos; ordem não importa. Peça repetida (林 = 木+木) vira "parecidos".
+- **Retorno**: o certo e os parecidos lado a lado, com pinyin, significado e peças.
+- Caracteres treináveis: os das palavras aprovadas do Baralho (até 4 caracteres; frases ficam de
+  fora) com decomposição de ≥2 peças. Distratores só do léxico. Ordem: errado por último, nunca
+  visto, menos acertos.
+- `state.hanziRegistro` (união na mesclagem) só ordena a fila: **não é proficiência, não dá XP,
+  não mexe no Baralho**, como o treino livre.
+- **Dados**: `content/componentes.js`, gerado do `dictionary.txt` de Make Me a Hanzi (LGPL-3,
+  derivado de Unihan e cjklib; aviso no cabeçalho do arquivo). Recorte: GB2312 nível 1 (3755 mais
+  comuns), léxico e componentes, recursivo: 4074 caracteres, ~106 KB. O raw.githubusercontent
+  baixou a ~3 KB/s; o jsDelivr (comando no cabeçalho do script) baixou em segundos. Palavra de
+  pacote com caractere fora do recorte simplesmente não entra no treino.
+**Se mudar:** regenerar `componentes.js` depois de mexer no léxico só importa para caracteres raros
+(os comuns já estão no recorte).
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -536,6 +564,7 @@ teste "entrada mais longa amplia a janela" passou a usar uma de 9.
 | 21 | Prioridade dos objetivos passa a dosar o conteúdo: rodízio ponderado em `candidateWords`, `goals` ordenado no briefing, prompt pack-v6 (futebol fora do 1º lugar = toque leve; exemplos do prompt no cotidiano); cartão de prioridades no topo do onboarding; texto de boas-vindas corrigido (havia áudio e envio de resumo desde a rodada 5/11) (318 → 319) | "prioridade menor no futebol, foco no cotidiano com um leve toque" e "não vi a parte de ordenar" |
 | 22 | **Lições 6–7 dos slides** (`slides_novos/`) no curso: 234 palavras novas (7 da revisão para a prova nas lições 1–5, 64 oficiais das lições 6–7, 163 extras: frutas, legumes, lugares, sala de aula, 42 pares de pronúncia), também no léxico base; já sabido só até a lição 5; extras fora de `seenWords`, dos exercícios sorteados e no fim da fila (319 → 320) | pedido: "TODAS as palavras que aparecerem em chinês na pasta slides_novos" |
 | 23 | **Lições 6–7 também já sabidas** (`ULTIMA_LICAO_SABIDA` = 7, migração por `deck.licoesSabidasAte` só para cartões nunca respondidos) e reavaliação cobrando o vocabulário oficial do curso em estudo (320 → 322) | "quero que esse vocabulário todo já esteja em todos os meus treinos"; "já estudei em aula" |
+| 24 | Lição 7, parte 2 (去 知道 跟 吧 太 了 + 6 extras) e **aba Hanzi** (escolher entre parecidos, montar pelas peças; decomposição de Make Me a Hanzi) (322 → 328) | "algo como o LEXCHI... vejo um radical que tem em poucos ou só um que eu conheço e pronto já sei qual é" |
 
 ---
 

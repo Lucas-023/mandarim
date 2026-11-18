@@ -7,7 +7,7 @@
 >
 > Resumo em uma linha: Fase 1 completa + geração diária por LLM + repetição espaçada + currículo
 > gramatical + áudio + celular autônomo (GitHub Pages, caixa postal) + baralho FSRS-6 (igual ao Anki) + prática de fala
-> com autoavaliação + baralho único (palavras do curso como já sabidas, pacote do dia entrando sozinho, treino livre, modo foco) + temas dosados pela ordem dos objetivos + lições 6–7 dos slides no baralho (já sabidas) e no léxico. 322 testes.
+> com autoavaliação + baralho único (palavras do curso como já sabidas, pacote do dia entrando sozinho, treino livre, modo foco) + temas dosados pela ordem dos objetivos + lições 6–7 dos slides no baralho (já sabidas) e no léxico + aba Hanzi (parecidos e montar pelas peças). 328 testes.
 >
 > Ao concluir um trabalho relevante neste projeto, **atualize `ESTADO-DO-PROJETO.md`** seguindo a
 > §8 daquele arquivo ("Como manter este documento"), que tem os gatilhos, os comandos que regeneram
