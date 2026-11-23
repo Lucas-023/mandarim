@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-18. Testes: **334 passando** (`npm test`).
+> Última atualização: 2026-11-23. Testes: **334 passando** (`npm test`).
 
 ---
 
@@ -21,8 +21,9 @@ para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
 Tamanho atual:  núcleo 7.590 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.683
-Conteúdo:       410 entradas no léxico base (154 à mão + 256 do curso) · 323 palavras das lições 1–7 do curso
-                no Baralho (todas como já sabidas desde §3.27: 84 das lições 1–5, 227 das lições 6–7 = 64 oficiais + 163 extras) ·
+Conteúdo:       423 entradas no léxico base (154 à mão + 269 do curso) · 332 palavras das lições 1–7 do curso
+                no Baralho (84 das lições 1–5, 248 das lições 6–7 = 76 oficiais + 172 extras; sabidas desde §3.27,
+                exceto as que chegaram depois: partes 2 e 3 da lição 7 entraram como novas) ·
                 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -129,7 +130,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/grammar.js    50 estruturas em ordem de progressão
   content/palavrasReais.js  GERADO (scripts/gerar-palavras-reais.mjs): 33 mil palavras de 2 caracteres do CC-CEDICT, CC BY-SA 4.0; carregado sob demanda
   content/componentes.js  GERADO (scripts/gerar-componentes.mjs): IDS + radical de 4074 caracteres, LGPL-3
-  content/vocabLicoes.js  323 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
+  content/vocabLicoes.js  332 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
                         activities, history, settings, audio, recorder, geracao, caixa, baralho, falar, hanzi, lexchi)
@@ -511,6 +512,13 @@ estavam) no fim das oficiais da lição 7; extras 太好了 咖啡店 书店 邮
 frases do texto e dos exercícios. 北京航空航天大学 (8 caracteres) virou a maior entrada do léxico: o
 teste "entrada mais longa amplia a janela" passou a usar uma de 9.
 
+**Lição 7, parte 3** (`16研第7课3.pptx`, 2026-11-23): 生词 卫生间 对不起 没关系 商店 地方 就 (里边 前边 看
+那儿 já estavam) no fim das oficiais da lição 7; extras 书包 宿舍 (补充生词; 书店 邮局 桌子 já estavam) e
+学生宿舍 (mapa do exercício, imagem). Mesmo caminho da parte 2: viram **cartões novos** (18), não sabidos.
+Conferido numa cópia de `data/state.json`: 9 rascunhos novos, 0 cartões existentes alterados. De fora:
+阿明 (nome), frases do texto e dos exercícios, caracteres soltos do exercício 七 (书 方 市 学, todos
+já dentro de palavras do curso).
+
 ### 3.28 Aba Hanzi: reconhecer o caractere inteiro, não o radical
 
 Pedido (2026-11-18): "algo como o LEXCHI" (não achei esse app; o pedido foi descrito assim:
@@ -595,6 +603,7 @@ soltos corta a maior parte. Se ele apontar uma "inventada" que existe, acrescent
 | 23 | **Lições 6–7 também já sabidas** (`ULTIMA_LICAO_SABIDA` = 7, migração por `deck.licoesSabidasAte` só para cartões nunca respondidos) e reavaliação cobrando o vocabulário oficial do curso em estudo (320 → 322) | "quero que esse vocabulário todo já esteja em todos os meus treinos"; "já estudei em aula" |
 | 24 | Lição 7, parte 2 (去 知道 跟 吧 太 了 + 6 extras) e **aba Hanzi** (escolher entre parecidos, montar pelas peças; decomposição de Make Me a Hanzi) (322 → 328) | "algo como o LEXCHI... vejo um radical que tem em poucos ou só um que eu conheço e pronto já sei qual é" |
 | 25 | Teste **"Existe?"** no formato LexCHI na aba Hanzi: palavras reais do Baralho e inventadas por troca de parecido ou mistura, checadas contra o CC-CEDICT; nota de Ghent e histórico (328 → 334) | "eu gostaria que usasse em maioria caracteres que eu conheço... o teste existe" |
+| 26 | Lição 7, parte 3 (`16研第7课3.pptx`): 卫生间 对不起 没关系 商店 地方 就 + extras 书包 宿舍 学生宿舍, como cartões novos (334 → 334) | "adicione o que falta dos slides_novos ao app" |
 
 ---
 

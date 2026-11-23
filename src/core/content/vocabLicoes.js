@@ -3,7 +3,7 @@
  * e entra no léxico base (content/lexicon.js).
  *
  * Lições 1–5: transcritas da lista que o aluno trouxe (vocab.png na raiz).
- * Lições 6–7: tiradas dos slides das aulas (pasta slides_novos, 2026-11-14),
+ * Lições 6–7: tiradas dos slides das aulas (pasta slides_novos, 2026-11-14 a 11-23),
  * a pedido de "todas as palavras em chinês que aparecerem nos slides". As
  * palavras que só apareceram na revisão para a prova (期中考试复习) e eram
  * das lições 1–5 foram para o fim dessas lições.
@@ -314,6 +314,13 @@ export const LICOES = [
       { hanzi: '吧', pinyin: 'ba', pt: 'partícula de sugestão ("vamos…")', nota: '我跟你一起去银行吧！' },
       { hanzi: '太', pinyin: 'tài', pt: 'demais; muito', nota: '太 + adjetivo + 了: 太贵了！' },
       { hanzi: '了', pinyin: 'le', pt: 'partícula modal', nota: 'Em 太……了: 太好了！' },
+      // Lição 7, parte 3 (16研第7课3.pptx, 2026-11-23).
+      { hanzi: '卫生间', pinyin: 'wèishēngjiān', pt: 'banheiro', nota: '请问，哪儿有卫生间？' },
+      { hanzi: '对不起', pinyin: 'duìbuqǐ', pt: 'desculpe', nota: 'Resposta: 没关系。' },
+      { hanzi: '没关系', pinyin: 'méi guānxi', pt: 'não tem problema; tudo bem', nota: 'Resposta a 对不起.' },
+      { hanzi: '商店', pinyin: 'shāngdiàn', pt: 'loja' },
+      { hanzi: '地方', pinyin: 'dìfang', pt: 'lugar', nota: '什么地方 = 哪儿: 商店在什么地方？' },
+      { hanzi: '就', pinyin: 'jiù', pt: 'justamente; exatamente', nota: '你看，那儿就是图书馆。/ 我就是。' },
       { hanzi: '北', pinyin: 'běi', pt: 'norte', extra: true },
       { hanzi: '南', pinyin: 'nán', pt: 'sul', extra: true },
       { hanzi: '东', pinyin: 'dōng', pt: 'leste', extra: true },
@@ -349,6 +356,9 @@ export const LICOES = [
       { hanzi: '邮局', pinyin: 'yóujú', pt: 'correio (agência)', extra: true },
       { hanzi: '中国人', pinyin: 'Zhōngguórén', pt: 'chinês (pessoa)', extra: true },
       { hanzi: '北京航空航天大学', pinyin: 'Běijīng Hángkōng Hángtiān Dàxué', pt: 'Universidade de Aeronáutica e Astronáutica de Pequim (Beihang)', extra: true },
+      { hanzi: '书包', pinyin: 'shūbāo', pt: 'mochila', nota: '书包里有…… (补充生词 da lição 7)', extra: true },
+      { hanzi: '宿舍', pinyin: 'sùshè', pt: 'dormitório', nota: '宿舍里有…… (补充生词 da lição 7)', extra: true },
+      { hanzi: '学生宿舍', pinyin: 'xuésheng sùshè', pt: 'dormitório dos estudantes', extra: true },
       { hanzi: '吃饭', pinyin: 'chī fàn', pt: 'comer; fazer refeição', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '时间', pinyin: 'shíjiān', pt: 'tempo', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '教室', pinyin: 'jiàoshì', pt: 'sala de aula', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
