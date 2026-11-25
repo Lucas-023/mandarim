@@ -3,7 +3,7 @@
  * e entra no léxico base (content/lexicon.js).
  *
  * Lições 1–5: transcritas da lista que o aluno trouxe (vocab.png na raiz).
- * Lições 6–7: tiradas dos slides das aulas (pasta slides_novos, 2026-11-14 a 11-23),
+ * Lições 6–8: tiradas dos slides das aulas (pasta slides_novos, 2026-11-14 a 11-25),
  * a pedido de "todas as palavras em chinês que aparecerem nos slides". As
  * palavras que só apareceram na revisão para a prova (期中考试复习) e eram
  * das lições 1–5 foram para o fim dessas lições.
@@ -338,7 +338,6 @@ export const LICOES = [
       { hanzi: '左', pinyin: 'zuǒ', pt: 'esquerda', extra: true },
       { hanzi: '右', pinyin: 'yòu', pt: 'direita', extra: true },
       { hanzi: '旁', pinyin: 'páng', pt: 'lado', extra: true },
-      { hanzi: '号', pinyin: 'hào', pt: 'número (de prédio, dia)', nota: '一号教学楼 = prédio nº 1.', extra: true },
       { hanzi: '弟弟', pinyin: 'dìdi', pt: 'irmão mais novo', extra: true },
       { hanzi: '妹妹', pinyin: 'mèimei', pt: 'irmã mais nova', extra: true },
       { hanzi: '朋友', pinyin: 'péngyou', pt: 'amigo(a)', extra: true },
@@ -359,7 +358,6 @@ export const LICOES = [
       { hanzi: '书包', pinyin: 'shūbāo', pt: 'mochila', nota: '书包里有…… (补充生词 da lição 7)', extra: true },
       { hanzi: '宿舍', pinyin: 'sùshè', pt: 'dormitório', nota: '宿舍里有…… (补充生词 da lição 7)', extra: true },
       { hanzi: '学生宿舍', pinyin: 'xuésheng sùshè', pt: 'dormitório dos estudantes', extra: true },
-      { hanzi: '吃饭', pinyin: 'chī fàn', pt: 'comer; fazer refeição', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '时间', pinyin: 'shíjiān', pt: 'tempo', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '教室', pinyin: 'jiàoshì', pt: 'sala de aula', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '教师', pinyin: 'jiàoshī', pt: 'professor(a)', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
@@ -401,6 +399,51 @@ export const LICOES = [
       { hanzi: '简直', pinyin: 'jiǎnzhí', pt: 'simplesmente; praticamente', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '兼职', pinyin: 'jiānzhí', pt: 'trabalho de meio período', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
       { hanzi: '实践', pinyin: 'shíjiàn', pt: 'prática; pôr em prática', nota: 'Do exercício de pronúncia da lição 7 (听读辨音/辨调).', extra: true, pronuncia: true },
+    ],
+  },
+  {
+    // 17研第8课1+2.pptx (2026-11-25). 号 e 吃饭 estavam na lição 7 (extra e par de
+    // pronúncia) e vieram para cá, onde são vocabulário da lição: o rascunho é o
+    // mesmo (id curso:汉字) e só as etiquetas mudam (curso.js, etiquetasDoCurso).
+    numero: 8,
+    titulo: '今天几号',
+    palavras: [
+      { hanzi: '今天', pinyin: 'jīntiān', pt: 'hoje', nota: '今天几月几号？星期几？' },
+      { hanzi: '月', pinyin: 'yuè', pt: 'mês', nota: '十一月 = novembro. Data: 年 → 月 → 日 (2026年11月24日).' },
+      { hanzi: '日', pinyin: 'rì', pt: 'dia (do mês)', nota: '日 = 号: 日 na escrita, 号 na fala.' },
+      { hanzi: '星期', pinyin: 'xīngqī', pt: 'semana', nota: '星期 + número = dia da semana: 星期一 (segunda)…星期六; domingo = 星期日/星期天.' },
+      { hanzi: '生日', pinyin: 'shēngrì', pt: 'aniversário', nota: '你的生日是几月几号？' },
+      { hanzi: '下课', pinyin: 'xià kè', pt: 'terminar a aula', nota: '下课以后 = depois da aula.' },
+      { hanzi: '以后', pinyin: 'yǐhòu', pt: 'depois (de); mais tarde', nota: 'Vem DEPOIS da ação: 下课以后，我准备…… / 回国以后……' },
+      { hanzi: '准备', pinyin: 'zhǔnbèi', pt: 'pretender; planejar; preparar', nota: 'Como 要/想: 星期六你准备去哪儿？' },
+      { hanzi: '吃', pinyin: 'chī', pt: 'comer' },
+      { hanzi: '饭', pinyin: 'fàn', pt: 'refeição; arroz cozido' },
+      { hanzi: '吃饭', pinyin: 'chī fàn', pt: 'comer; fazer refeição', nota: 'A 请 B 吃饭 = A convida B para comer (e paga): 我们请你吃饭。' },
+      { hanzi: '号', pinyin: 'hào', pt: 'dia (do mês); número', nota: '今天几号？ — 九月二十八号。Também número de prédio: 一号教学楼.' },
+      { hanzi: '怎么样', pinyin: 'zěnmeyàng', pt: 'que tal?; como é?', nota: 'Proposta: 明天我请你吃饭，怎么样？ Opinião: 那个商店的面包怎么样？' },
+      // Ensinados nos slides (linha do tempo e quadro de revisão), fora da lista de 生词.
+      { hanzi: '明天', pinyin: 'míngtiān', pt: 'amanhã' },
+      { hanzi: '昨天', pinyin: 'zuótiān', pt: 'ontem' },
+      { hanzi: '前天', pinyin: 'qiántiān', pt: 'anteontem' },
+      { hanzi: '后天', pinyin: 'hòutiān', pt: 'depois de amanhã' },
+      { hanzi: '年', pinyin: 'nián', pt: 'ano', nota: '2026年 = èr líng èr liù nián (dígito por dígito).' },
+      { hanzi: '星期一', pinyin: 'xīngqīyī', pt: 'segunda-feira' },
+      { hanzi: '星期二', pinyin: 'xīngqī\'èr', pt: 'terça-feira' },
+      { hanzi: '星期三', pinyin: 'xīngqīsān', pt: 'quarta-feira' },
+      { hanzi: '星期四', pinyin: 'xīngqīsì', pt: 'quinta-feira' },
+      { hanzi: '星期五', pinyin: 'xīngqīwǔ', pt: 'sexta-feira' },
+      { hanzi: '星期六', pinyin: 'xīngqīliù', pt: 'sábado' },
+      { hanzi: '星期日', pinyin: 'xīngqīrì', pt: 'domingo', nota: 'Na fala, mais 星期天.' },
+      { hanzi: '星期天', pinyin: 'xīngqītiān', pt: 'domingo', nota: 'Mais falado que 星期日.' },
+      { hanzi: '星期几', pinyin: 'xīngqī jǐ', pt: 'que dia da semana?', nota: '今天星期几？ — 今天星期二。' },
+      { hanzi: '几号', pinyin: 'jǐ hào', pt: 'que dia (do mês)?', nota: '今天几月几号？' },
+      { hanzi: '天', pinyin: 'tiān', pt: 'dia; céu', nota: '星期日 = 星期天.', extra: true },
+      { hanzi: '回', pinyin: 'huí', pt: 'voltar', extra: true },
+      { hanzi: '回国', pinyin: 'huí guó', pt: 'voltar para o seu país', nota: '回国以后，我准备……', extra: true },
+      { hanzi: '天气', pinyin: 'tiānqì', pt: 'tempo (clima)', nota: '今天天气很好。', extra: true },
+      { hanzi: '东西', pinyin: 'dōngxi', pt: 'coisa(s)', nota: 'dōngxi (coisa) × dōngxī (leste e oeste).', extra: true },
+      { hanzi: '买东西', pinyin: 'mǎi dōngxi', pt: 'fazer compras', nota: '星期六你准备去买东西吗？', extra: true },
+      { hanzi: '效率', pinyin: 'xiàolǜ', pt: 'eficiência', nota: 'Só aparece numa ilustração do slide.', extra: true },
     ],
   },
 ];

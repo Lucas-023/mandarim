@@ -27,6 +27,11 @@
  * sabidos, espalhados do mesmo jeito. Cartão já respondido não é tocado. Até onde
  * isso já foi feito fica em `deck.licoesSabidasAte` (ausente = 5, o valor antigo).
  *
+ * Uma palavra pode mudar de lição ou de tipo (号 e 吃饭 eram extras da lição 7 e
+ * viraram vocabulário da lição 8). O rascunho fica o mesmo; as etiquetas do curso
+ * (`licao-N`, `extra`, `pronuncia`) e o contexto são refeitos a partir da lista,
+ * sem tocar nas etiquetas que o aluno pôs (etiquetasAtualizadas).
+ *
  * Nada aqui é proficiência nem dá XP.
  */
 import { LICOES, PALAVRAS, ULTIMA_LICAO_SABIDA } from './content/vocabLicoes.js';
@@ -41,6 +46,38 @@ export const DIAS_ESPALHAR = 7;
 const MODELOS_CURSO = ['reconhecer', 'produzir'];
 
 const LICAO = new Map(LICOES.map((l) => [l.numero, l]));
+const PALAVRA_POR_FRENTE = new Map(PALAVRAS.map((p) => [normalizeFront(p.hanzi), p]));
+
+/** Etiquetas que vêm da lista do curso (o resto é do aluno ou do pacote). */
+const ehEtiquetaDoCurso = (t) => t === 'curso' || t === 'extra' || t === 'pronuncia' || /^licao-\d+$/.test(t);
+const etiquetasDoCurso = (p) => ['curso', `licao-${p.licao}`, ...(p.extra ? ['extra'] : []), ...(p.pronuncia ? ['pronuncia'] : [])];
+const contextoDoCurso = (p) => {
+  const licao = LICAO.get(p.licao);
+  return `Lição ${p.licao}${licao ? ` — ${licao.titulo}` : ''}`;
+};
+
+/** Etiquetas de um rascunho do curso conforme a lista atual, ou null se já estão certas. */
+function etiquetasAtualizadas(d, p) {
+  const atuais = d.tags || [];
+  const doCurso = etiquetasDoCurso(p);
+  const novas = [...atuais.filter((t) => !ehEtiquetaDoCurso(t) || doCurso.includes(t))];
+  for (const t of doCurso) if (!novas.includes(t)) novas.push(t);
+  const iguais = novas.length === atuais.length && novas.every((t) => atuais.includes(t));
+  return iguais ? null : novas;
+}
+
+/** Rascunhos do curso cuja lição ou tipo mudou na lista desde que foram criados. */
+function rascunhosDesatualizados(state) {
+  const fora = [];
+  for (const d of state.cardDrafts || []) {
+    if (d.status === 'rejected' || !(d.tags || []).includes('curso')) continue;
+    const p = PALAVRA_POR_FRENTE.get(normalizeFront(d.front));
+    if (!p) continue;
+    const tags = etiquetasAtualizadas(d, p);
+    if (tags) fora.push({ d, p, tags });
+  }
+  return fora;
+}
 
 /** Até que lição os cartões novos já foram convertidos em sabidos neste aparelho. */
 const sabidasAte = (deck) => deck?.licoesSabidasAte ?? 5;
@@ -48,11 +85,14 @@ const sabidasAte = (deck) => deck?.licoesSabidasAte ?? 5;
 export function precisaIncorporarCurso(state) {
   const feitos = new Set(state.deck?.cursoIncluido || []);
   if (Array.isArray(state.deck?.cursoIncluido) && sabidasAte(state.deck) < ULTIMA_LICAO_SABIDA) return true;
-  return PALAVRAS.some((p) => !feitos.has(p.hanzi)) || Boolean(state.vocabulario?.cartoes?.length || state.vocabulario?.registro?.length);
+  return (
+    PALAVRAS.some((p) => !feitos.has(p.hanzi)) ||
+    Boolean(state.vocabulario?.cartoes?.length || state.vocabulario?.registro?.length) ||
+    rascunhosDesatualizados(state).length > 0
+  );
 }
 
 function rascunhoDoCurso(p, agora, i) {
-  const licao = LICAO.get(p.licao);
   return {
     id: idCurso(p.hanzi),
     status: 'approved',
@@ -62,9 +102,9 @@ function rascunhoDoCurso(p, agora, i) {
     example: '',
     exampleTranslation: '',
     usageNote: p.nota || '',
-    context: `Lição ${p.licao}${licao ? ` — ${licao.titulo}` : ''}`,
+    context: contextoDoCurso(p),
     difficulty: 1,
-    tags: ['curso', `licao-${p.licao}`, ...(p.extra ? ['extra'] : []), ...(p.pronuncia ? ['pronuncia'] : [])],
+    tags: etiquetasDoCurso(p),
     kind: 'word',
     template: 'zh_pt',
     duplicate: false,
@@ -114,7 +154,7 @@ export function incorporarCurso(state, { agora = new Date() } = {}) {
   const primeiraVez = !Array.isArray(deck.cursoIncluido);
   const feitos = new Set(deck.cursoIncluido || []);
   const porFrente = new Map(state.cardDrafts.map((d) => [normalizeFront(d.front), d]));
-  const rel = { rascunhos: 0, migrados: 0, jaSabidos: 0, novos: 0, registro: 0, pacotesAprovados: 0 };
+  const rel = { rascunhos: 0, migrados: 0, jaSabidos: 0, novos: 0, registro: 0, pacotesAprovados: 0, etiquetas: 0 };
 
   // Junto com a mudança veio "o que o pacote traz entra sozinho": os cartões de
   // pacotes que ficaram pendentes antes disso entram agora, como novos.
@@ -147,6 +187,16 @@ export function incorporarCurso(state, { agora = new Date() } = {}) {
     entraram.push({ p, d });
   });
   deck.cursoIncluido = [...feitos];
+
+  // 1b. Palavra que mudou de lição ou de tipo na lista: o rascunho acompanha.
+  for (const { d, p, tags } of rascunhosDesatualizados(state)) {
+    d.tags = tags;
+    if (d.id === idCurso(p.hanzi)) {
+      d.context = contextoDoCurso(p);
+      d.source = `curso, lição ${p.licao}`;
+    }
+    rel.etiquetas += 1;
+  }
 
   // 2. Progresso da aba Vocabulário (cartão `汉字:modelo`) vai para o cartão do baralho.
   const draftDe = (hanzi) => {

@@ -84,7 +84,7 @@ todas as telas.
 | Pacote gerado pelo plano do Claude no computador e entregue ao celular via repositório privado | ✅ |
 | Baralho interno estilo Anki (FSRS, 4 notas, passos, navegador, estatísticas), sem precisar do Anki | ✅ |
 | As 77 palavras das lições 1–5 do curso no Baralho, como já sabidas, e enviadas ao gerador como vocabulário conhecido | ✅ |
-| Lições 6–7 (todas as palavras em chinês dos slides) no Baralho como já sabidas e no léxico base; reavaliação cobra o vocabulário do curso | ✅ |
+| Lições 6–8 (todas as palavras em chinês dos slides) no Baralho (6–7 como já sabidas, exceto as partes 2–3 da lição 7; lição 8 como nova) e no léxico base; reavaliação cobra o vocabulário do curso | ✅ |
 | Aba Hanzi: escolher o caractere entre parecidos e montá-lo pelas peças (decomposição de Make Me a Hanzi, LGPL-3) | ✅ |
 | Teste "Existe?" no formato LexCHI com as palavras do aluno (dicionário CC-CEDICT, CC BY-SA 4.0) | ✅ |
 | Palavras e frases do pacote do dia entram sozinhas no Baralho, como cartões novos (desligável) | ✅ |

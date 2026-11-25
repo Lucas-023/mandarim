@@ -186,7 +186,8 @@ test('briefing de aluno novo não dá o dicionário como sabido e sugere vocabul
 
 test('a prioridade dos objetivos dosa as sugestões: futebol em último é só um toque', () => {
   const s = emptyState(); // padrão: cotidiano, conversa, futebol
-  const conta = (b) => b.candidateWords.filter((c) => c.tags.includes('futebol')).length;
+  // Palavra que é também do cotidiano (累) entra pela vaga do cotidiano: não conta como futebol.
+  const conta = (b) => b.candidateWords.filter((c) => c.tags.includes('futebol') && !c.tags.includes('cotidiano')).length;
   const ultimo = buildBriefing(s, { date: HOJE });
   assert.ok(conta(ultimo) > 0, 'ainda entra um pouco');
   assert.ok(conta(ultimo) <= ultimo.candidateWords.length / 5, `futebol em último: ${conta(ultimo)} de ${ultimo.candidateWords.length}`);

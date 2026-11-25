@@ -37,12 +37,12 @@ function cartaoVocab(hanzi, modelo, extra = {}) {
   };
 }
 
-test('lista do curso: 7 lições, palavras únicas, todas com pinyin e tradução', () => {
-  assert.deepEqual(LICOES.map((l) => l.numero), [1, 2, 3, 4, 5, 6, 7]);
+test('lista do curso: 8 lições, palavras únicas, todas com pinyin e tradução', () => {
+  assert.deepEqual(LICOES.map((l) => l.numero), [1, 2, 3, 4, 5, 6, 7, 8]);
   assert.equal(N15, 84, '77 da lista original + 7 da revisão para a prova');
   assert.equal(ULTIMA_LICAO_SABIDA, 7, 'ele já estudou as lições 6–7 em aula');
-  assert.equal(NSAB, NPAL);
-  assert.ok(NPAL > 250, `lições 6 e 7 dos slides: ${NPAL}`);
+  assert.ok(NSAB < NPAL, 'a lição 8 chegou depois: nasce nova');
+  assert.ok(NPAL > 250, `lições 6 a 8 dos slides: ${NPAL}`);
   // Vocabulário oficial primeiro, extras dos slides no fim da fila de novos.
   const primeiroExtra = PALAVRAS.findIndex((p) => p.extra);
   assert.ok(PALAVRAS.slice(primeiroExtra).every((p) => p.extra));
@@ -83,7 +83,8 @@ test('aparelho novo: as lições sabidas entram como já sabidas, espalhadas, se
   assert.ok(prod.every((d) => d > DIAS_ESPALHAR && d <= DIAS_ESPALHAR * 2));
   const hojeFila = fila(s, { agora: INICIO });
   assert.equal(hojeFila.contagem.revisao, 0, 'hoje nada do que ele sabe cobra revisão');
-  assert.equal(hojeFila.contagem.novos, 0, 'nada do curso fica na fila de novos');
+  assert.ok(hojeFila.contagem.novos > 0, 'a lição 8 (não sabida) está na fila de novos');
+  assert.ok(licao.get(hojeFila.proximo.draftId) > ULTIMA_LICAO_SABIDA, 'o que ele sabe não aparece como novo');
   const amanha = fila(s, { agora: dias(INICIO, 1) });
   assert.ok(amanha.contagem.revisao > 0 && amanha.contagem.revisao <= Math.ceil(NSAB / DIAS_ESPALHAR));
   const primeiraRevisao = sabidos.slice().sort((x, y) => x.due.localeCompare(y.due) || x.criadoEm.localeCompare(y.criadoEm))[0];
@@ -323,7 +324,7 @@ test('tela: abrir o baralho num aparelho novo traz o curso e avisa o que fez', (
   const view = renderBaralho(ctx);
   assert.equal(ctx.state.deck.cartoes.length, NPAL * 2);
   assert.match(ctx.toasts.at(-1).m, new RegExp(`${NSAB * 2} cartões das lições do curso entraram como já sabidos`));
-  assert.doesNotMatch(ctx.toasts.at(-1).m, /cartões novos do curso/);
+  assert.match(ctx.toasts.at(-1).m, new RegExp(`${(NPAL - NSAB) * 2} cartões novos do curso`));
   assert.match(view.textContent, /Treino livre/);
   assert.match(view.textContent, /Palavras do curso/);
   renderBaralho(ctx);
@@ -418,18 +419,19 @@ test('lições 6–7 passam a sabidas num aparelho que já as tinha como novas: 
   const depois = dias(INICIO, 2);
   assert.equal(precisaIncorporarCurso(s), true);
   const rel = incorporarCurso(s, { agora: depois });
-  assert.equal(rel.jaSabidos, (NPAL - N15) * 2 - 1);
+  assert.equal(rel.jaSabidos, (NSAB - N15) * 2 - 1, 'só as lições 6–7; a 8 não é sabida');
   assert.equal(rel.novos, 0);
   assert.equal(s.deck.licoesSabidasAte, 7);
   assert.equal(JSON.stringify(s.deck.cartoes.find((c) => c.id === estudado.id)), copiaEstudado, 'cartão respondido intacto');
   assert.equal(JSON.stringify(s.deck.cartoes.filter((c) => licao.get(c.draftId) <= 5)), licoes15, 'lições 1–5 intactas');
-  const convertidos = s.deck.cartoes.filter((c) => licao.get(c.draftId) > 5 && c.id !== estudado.id);
+  const convertidos = s.deck.cartoes.filter((c) => licao.get(c.draftId) > 5 && licao.get(c.draftId) <= 7 && c.id !== estudado.id);
+  assert.ok(s.deck.cartoes.filter((c) => licao.get(c.draftId) > 7).every((c) => c.estado === 'novo'), 'lição 8 continua nova');
   assert.ok(convertidos.every((c) => c.estado === 'revisao' && c.conhecidoDeclarado && c.reps === 0));
   const diaDe = (c) => Math.round((Date.parse(c.due) - Date.parse(`${dayKey(depois)}T00:00:00`)) / 86400000);
   assert.ok(convertidos.filter((c) => c.modelo === 'reconhecer').every((c) => diaDe(c) >= 1 && diaDe(c) <= DIAS_ESPALHAR));
   assert.ok(convertidos.filter((c) => c.modelo === 'produzir').every((c) => diaDe(c) > DIAS_ESPALHAR && diaDe(c) <= DIAS_ESPALHAR * 2));
   assert.equal(s.deck.registro.length, 1, 'declarar não cria respostas');
-  assert.equal(fila(s, { agora: depois }).contagem.novos, 0, 'fila de novos livre para o pacote');
+  assert.ok(s.deck.cartoes.filter((c) => c.estado === 'novo').every((c) => licao.get(c.draftId) > 7), 'novos só da lição 8: o resto ficou livre');
 
   // Idempotente, e a mesclagem com o aparelho antigo não faz converter de novo.
   assert.equal(precisaIncorporarCurso(s), false);
@@ -461,4 +463,22 @@ test('reavaliação: cobra o vocabulário oficial do curso em estudo, nunca os e
   for (let seed = 1; seed <= 20; seed += 1) {
     assert.ok(!buildWeeklyAssessment(s, { seed }).items.some((i) => (i.targets || []).includes('香蕉') || i.ref === '香蕉'));
   }
+});
+
+test('palavra que muda de lição na lista (吃饭: par de pronúncia da 7 → lição 8) leva as etiquetas, não o progresso', () => {
+  const s = emptyState();
+  incorporarCurso(s, { agora: INICIO });
+  const d = s.cardDrafts.find((x) => x.id === idCurso('吃饭'));
+  // Como ficou no celular, incorporado quando 吃饭 era extra da lição 7; ele pôs uma etiqueta própria.
+  d.tags = ['curso', 'licao-7', 'extra', 'pronuncia', 'minha'];
+  d.context = 'Lição 7 — 中国银行在哪儿';
+  const cartoes = JSON.stringify(s.deck.cartoes);
+  assert.equal(precisaIncorporarCurso(s), true);
+  const rel = incorporarCurso(s, { agora: dias(INICIO, 1) });
+  assert.equal(rel.etiquetas, 1);
+  assert.deepEqual([...d.tags].sort(), ['curso', 'licao-8', 'minha']);
+  assert.match(d.context, /^Lição 8/);
+  assert.equal(JSON.stringify(s.deck.cartoes), cartoes, 'agendamento intacto');
+  assert.equal(precisaIncorporarCurso(s), false);
+  assert.ok(s.cardDrafts.every((x) => !x.tags.includes('curso') || PALAVRAS.some((p) => p.hanzi === x.front)));
 });

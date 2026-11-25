@@ -5,7 +5,7 @@
 > Leia este arquivo antes de mexer em qualquer coisa. `CLAUDE.md` é a especificação original
 > (o "contrato"); `README.md` é o manual de uso; este arquivo é o histórico de decisões.
 >
-> Última atualização: 2026-11-23. Testes: **334 passando** (`npm test`).
+> Última atualização: 2026-11-25. Testes: **335 passando** (`npm test`).
 
 ---
 
@@ -21,9 +21,9 @@ para rodar o app — isso foi decisão de projeto, não acidente (ver §3.1).
 
 ```
 Tamanho atual:  núcleo 7.590 linhas · interface 4.106 · servidor/scripts 1.363 · testes 4.683
-Conteúdo:       423 entradas no léxico base (154 à mão + 269 do curso) · 332 palavras das lições 1–7 do curso
-                no Baralho (84 das lições 1–5, 248 das lições 6–7 = 76 oficiais + 172 extras; sabidas desde §3.27,
-                exceto as que chegaram depois: partes 2 e 3 da lição 7 entraram como novas) ·
+Conteúdo:       450 entradas no léxico base (154 à mão + 296 do curso) · 365 palavras das lições 1–8 do curso
+                no Baralho (84 das lições 1–5, 246 das lições 6–7 = 76 oficiais + 170 extras, 35 da lição 8 = 28 + 7 extras;
+                sabidas até a lição 7 (§3.27), exceto as que chegaram depois: partes 2–3 da lição 7 e a lição 8 entraram como novas) ·
                 26 questões de nivelamento · 50 pontos de gramática
 ```
 
@@ -32,7 +32,7 @@ Conteúdo:       423 entradas no léxico base (154 à mão + 269 do curso) · 33
 ```bash
 npm start                      # servidor local (recomendado no PC): http://127.0.0.1:8000
 HOST=0.0.0.0 npm start         # + acessível pelo celular na mesma Wi-Fi (exige chave)
-npm test                       # 334 testes, ~4s, sem rede
+npm test                       # 335 testes, ~4s, sem rede
 npm run generate               # gera o pacote do dia (backend claude-code)
 npm run generate:dry           # mostra o prompt exato, sem chamar modelo nenhum
 npm run generate:mock          # pacote falso, para testar interface
@@ -130,7 +130,7 @@ src/core/               LÓGICA PURA — sem DOM. É o que os testes exercitam.
   content/grammar.js    50 estruturas em ordem de progressão
   content/palavrasReais.js  GERADO (scripts/gerar-palavras-reais.mjs): 33 mil palavras de 2 caracteres do CC-CEDICT, CC BY-SA 4.0; carregado sob demanda
   content/componentes.js  GERADO (scripts/gerar-componentes.mjs): IDS + radical de 4074 caracteres, LGPL-3
-  content/vocabLicoes.js  332 palavras das lições 1–7 do curso (1–5 de vocab.png; 6–7 dos slides), com pinyin e tradução
+  content/vocabLicoes.js  365 palavras das lições 1–8 do curso (1–5 de vocab.png; 6–8 dos slides), com pinyin e tradução
 
 src/ui/                 telas (dom.js, dashboard, onboarding, placement, study, cards, pack,
                         activities, history, settings, audio, recorder, geracao, caixa, baralho, falar, hanzi, lexchi)
@@ -139,7 +139,7 @@ tools/caixaPostal.js    atende a caixa postal: pedido do celular → claude -p �
 tools/backends/         claude-code (padrão, testado), api (SDK oficial, NÃO testado), mock
 scripts/                timer systemd, semear demonstração, montar publicação, gerar componentes e palavras reais
 .github/workflows/      publicação automática no GitHub Pages
-tests/                  23 arquivos, 334 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
+tests/                  23 arquivos, 335 testes; tests/helpers/dom-shim.js é um DOM mínimo próprio
 data/                   SEUS DADOS (fora do git): state.json, packs/, media/, outbox/, backups/
 ```
 
@@ -572,6 +572,29 @@ soltos, pseudocaracteres desenhados). Os itens originais são avançados (烹饪
 **Limite conhecido:** "não estar no dicionário" não prova que não é expressão; a regra dos caracteres
 soltos corta a maior parte. Se ele apontar uma "inventada" que existe, acrescentar à lista e regenerar.
 
+### 3.30 Lição 8 nasce nova, e palavra que muda de lição leva as etiquetas
+
+`17研第8课1+2.pptx` (2026-11-25), 第八课 今天几号？: 生词 今天 月 日 星期 生日 下课 以后 准备 吃 饭 + 怎么样 号
+(的 请 对 já estavam). Decisões:
+- **Lição 8 fica NOVA** (`ULTIMA_LICAO_SABIDA` segue 7): os slides são da semana (datas 11.22–11.27
+  no quadro), como as partes 2–3 da lição 7. Se ele disser que já domina, subir para 8 converte só
+  os cartões nunca respondidos (§3.27).
+- **Oficiais além dos 生词**: 明天 昨天 前天 后天 年 星期一…星期日/星期天 星期几 几号 são ensinados
+  na linha do tempo e cobrados no quadro de 复习, então NÃO são `extra` (vão em `seenWords`). Extras:
+  天 回 回国 天气 东西 买东西 e 效率 (só numa ilustração).
+- **号 e 吃饭 saíram da lição 7** (extra; 吃饭 era par de `pronuncia`) e viraram oficiais da 8. O
+  rascunho `curso:汉字` é o mesmo; `incorporarCurso` agora refaz as etiquetas do curso (`licao-N`,
+  `extra`, `pronuncia`) e o contexto quando a lista muda, mantendo as etiquetas do aluno e o
+  agendamento. `precisaIncorporarCurso` detecta rascunho desatualizado. Sem isso o celular manteria
+  吃饭 como `pronuncia`, fora do teste "Existe?".
+- Conferido com o estado gerado pelo código anterior (`git archive HEAD`): 33 rascunhos, 66 cartões
+  novos, 2 rascunhos com etiquetas trocadas, 0 cartões existentes alterados.
+- O léxico à mão já tinha 今天 明天 昨天 星期 吃 怎么样 (a entrada à mão vence); como agora são do curso,
+  saíram de `candidateWords`. Por isso 累 (futebol + cotidiano) passou a aparecer nas sugestões, e o
+  teste de prioridade de `fala.test.js` deixou de contar como futebol a palavra que também é cotidiano.
+**Se mudar:** num aparelho novo, 号 e 吃饭 nascem novos (antes eram sabidos pela lição 7). Mudar uma
+palavra de lição sem a sincronização das etiquetas deixa o rascunho do celular com a lição antiga.
+
 ---
 
 ## 4. Histórico: o que foi feito em cada rodada
@@ -604,6 +627,7 @@ soltos corta a maior parte. Se ele apontar uma "inventada" que existe, acrescent
 | 24 | Lição 7, parte 2 (去 知道 跟 吧 太 了 + 6 extras) e **aba Hanzi** (escolher entre parecidos, montar pelas peças; decomposição de Make Me a Hanzi) (322 → 328) | "algo como o LEXCHI... vejo um radical que tem em poucos ou só um que eu conheço e pronto já sei qual é" |
 | 25 | Teste **"Existe?"** no formato LexCHI na aba Hanzi: palavras reais do Baralho e inventadas por troca de parecido ou mistura, checadas contra o CC-CEDICT; nota de Ghent e histórico (328 → 334) | "eu gostaria que usasse em maioria caracteres que eu conheço... o teste existe" |
 | 26 | Lição 7, parte 3 (`16研第7课3.pptx`): 卫生间 对不起 没关系 商店 地方 就 + extras 书包 宿舍 学生宿舍, como cartões novos (334 → 334) | "adicione o que falta dos slides_novos ao app" |
+| 27 | **Lição 8** (`17研第8课1+2.pptx`, 今天几号): 33 palavras novas como cartões novos (datas, dias da semana, 生日 下课 以后 准备 吃 饭 怎么样); 号 e 吃饭 passam da lição 7 para a 8, com as etiquetas do rascunho refeitas pela lista (334 → 335) | "adicione os novos slides" |
 
 ---
 
