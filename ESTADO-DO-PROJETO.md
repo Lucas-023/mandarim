@@ -788,6 +788,12 @@ Registradas para ninguém cair de novo.
     folhas de miniaturas, lendo as imagens. Não há tesseract com chinês instalado. Os slides usam
     `ɡ` (U+0261) no pinyin e têm erros de tom (`yìdiánr`, `jú zǐ`): pinyin foi reescrito à mão.
     `9研第6课1(1).pptx` é a versão corrigida de `9研第6课1.pptx`.
+27. **Push certo não é site atualizado.** Em 2026-11-25 o `deploy-pages@v4` falhou duas vezes com
+    "No artifacts named github-pages" com o artefato lá (297 KB): as ações v3/v4 de 2023–24 deixaram de
+    se entender com o serviço de artefatos. Resolvido com `configure-pages@v6`, `upload-pages-artifact@v5`
+    (com `include-hidden-files` para o `.nojekyll`) e `deploy-pages@v5`. Depois de um push, conferir o
+    run (`curl -s "https://api.github.com/repos/Lucas-023/mandarim/actions/runs?per_page=1"`, repositório
+    público, sem token) e o arquivo publicado, não só o `git push`.
 
 ---
 
